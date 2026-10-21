@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-primary: oklch(60.7% 0.213 238.04);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(70.45% 0.187 47.6);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(60.7% 0.213 238.04);
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(96% 0 0);
+  --color-base-300: oklch(92% 0 0);
+  --color-base-content: oklch(20% 0 0);
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  --color-primary: oklch(60.7% 0.213 238.04);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(70.45% 0.187 47.6);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(60.7% 0.213 238.04);
+  --color-base-100: oklch(18% 0.01 240);
+  --color-base-200: oklch(22% 0.01 240);
+  --color-base-300: oklch(26% 0.01 240);
+  --color-base-content: oklch(92% 0.005 240);
+}
+
+:root {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* ── Page hero gradient — light / dark aware ────────────────────────────── */
+/* Used on About, Contact, Blog hero sections.                               */
+/* DaisyUI sets data-theme on <html>, so Tailwind's dark: prefix won't fire. */
+/* We use [data-theme='dark'] parent selectors here instead.                 */
+.page-hero-bg {
+  background-image: linear-gradient(to bottom right, #f0f9ff, #ffffff, #fff7ed);
+}
+[data-theme='dark'] .page-hero-bg {
+  background-image: linear-gradient(
+    to bottom right,
+    oklch(18% 0.04 238),
+    oklch(22% 0.01 240),
+    oklch(18% 0.03 30)
+  );
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(60.7% 0.213 238.04);
+  border-radius: 9999px;
+}

@@ -1,0 +1,15 @@
+import express from 'express';
+import { reviewControllers } from '../controllers/review.controller';
+import authenticate from '../middlewares/auth.middleware';
+import authorize from '../middlewares/role.middleware';
+
+const router = express.Router();
+
+router.get('/', authenticate, authorize('admin'), reviewControllers.getAllReviews);
+router.get('/product/:productId', reviewControllers.getProductReviews);
+router.get('/my', authenticate, reviewControllers.getMyReviews);
+router.post('/', authenticate, reviewControllers.addReview);
+router.patch('/:id', authenticate, reviewControllers.updateReview);
+router.delete('/:id', authenticate, reviewControllers.deleteReview);
+
+export const ReviewRoutes = router;
