@@ -41,9 +41,22 @@ export interface ICategory {
 }
 
 // ─── Product ─────────────────────────────────────────────────────────────────
+export type Gender = 'men' | 'women' | 'kids' | 'unisex';
+
+export interface IVariant {
+  size: string;
+  color: string;
+  colorHex?: string;
+  sku: string;
+  stock: number;
+  /** Optional price override for this variant; falls back to product.price */
+  priceOverride?: number;
+}
+
 export interface IProduct {
   _id?: Types.ObjectId;
   title: string;
+  slug?: string;
   description: string;
   images?: string[];
   price: number;
@@ -54,10 +67,20 @@ export interface IProduct {
   tags?: string[];
   rating?: number;
   reviewCount?: number;
+  /** Total stock. Derived from variants when variants exist. */
   stock: number;
   sold?: number;
+  // Fashion attributes
+  gender?: Gender;
+  material?: string;
+  fit?: string;
+  careInstructions?: string;
+  sizeGuide?: string;
+  variants?: IVariant[];
   specifications?: Map<string, string>;
   createdBy: Types.ObjectId | string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // ─── Review ──────────────────────────────────────────────────────────────────
@@ -72,9 +95,13 @@ export interface IReview {
 
 // ─── Cart ────────────────────────────────────────────────────────────────────
 export interface ICartItem {
+  _id?: Types.ObjectId;
   productId: Types.ObjectId;
   quantity: number;
   price: number;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 export interface ICart {
@@ -94,6 +121,9 @@ export interface IOrderItem {
   price: number;
   title: string;
   image: string;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 export interface IOrder {

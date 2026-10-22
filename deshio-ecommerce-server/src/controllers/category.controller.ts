@@ -1,15 +1,11 @@
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import Category from '../models/category.model';
 import Product from '../models/product.model';
 import AppError from '../utils/AppError';
 import asyncHandler from '../utils/asyncHandler';
 import sendResponse from '../utils/sendResponse';
-
-const slugify = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '');
+import { slugify } from '../utils/slugify';
 
 // POST /api/v1/categories
 const createCategory = asyncHandler(async (req: Request, res: Response) => {
@@ -41,7 +37,9 @@ const getCategoryTree = asyncHandler(async (_req: Request, res: Response) => {
         (s) => s.parentCategory!.toString() === (main._id as any).toString()
       );
       const catIds = [main._id, ...children.map((c) => c._id)];
-      const brands: string[] = await Product.distinct('brand', { category: { $in: catIds } });
+      const brands: string[] = (await Product.distinct('brand', { category: { $in: catIds } })).filter(
+        Boolean
+      );
       return { ...main, children, brands };
     })
   );
@@ -56,7 +54,7 @@ const getCategoryTree = asyncHandler(async (_req: Request, res: Response) => {
 
 // GET /api/v1/categories
 const getAllCategories = asyncHandler(async (_req: Request, res: Response) => {
-  const categories = await Category.find().populate('parentCategory', 'name slug');
+  const categories = await Category.find().populate('parentCategory', 'name slug').lean();
 
   sendResponse(res, {
     statusCode: 200,
@@ -66,9 +64,16 @@ const getAllCategories = asyncHandler(async (_req: Request, res: Response) => {
   });
 });
 
-// GET /api/v1/categories/:id
+// GET /api/v1/categories/:id — resolves by slug or ObjectId
 const getCategoryById = asyncHandler(async (req: Request, res: Response) => {
-  const category = await Category.findById(req.params.id).populate('parentCategory', 'name slug');
+  const param = String(req.params.id).trim();
+  let category = await Category.findOne({ slug: param.toLowerCase() })
+    .populate('parentCategory', 'name slug')
+    .lean();
+
+  if (!category && Types.ObjectId.isValid(param)) {
+    category = await Category.findById(param).populate('parentCategory', 'name slug').lean();
+  }
   if (!category) throw new AppError('Category not found', 404);
 
   sendResponse(res, {

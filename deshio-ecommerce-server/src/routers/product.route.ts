@@ -7,10 +7,11 @@ const router = express.Router();
 
 router.get('/', productControllers.getAllProducts);
 router.get('/featured', productControllers.getFeaturedProducts);
+router.get('/slugs', productControllers.getProductSlugs);
 router.get('/:id', productControllers.getProductById);
-router.post('/', authenticate, authorize('admin'), productControllers.createProduct);
+router.post('/', authenticate, authorize('admin', 'super-admin'), productControllers.createProduct);
 router.patch('/:id', authenticate, productControllers.updateProduct);
-router.delete('/:id', authenticate, authorize('admin'), productControllers.deleteProduct);
+router.delete('/:id', authenticate, authorize('admin', 'super-admin'), productControllers.deleteProduct);
 router.post('/:id/wishlist', authenticate, productControllers.toggleWishlist);
 
 export const ProductRoutes = router;
