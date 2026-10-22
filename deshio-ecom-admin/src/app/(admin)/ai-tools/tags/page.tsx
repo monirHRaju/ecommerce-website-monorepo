@@ -6,6 +6,8 @@ import api from "@/lib/api";
 export default function GenerateTagsPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+  const [gender, setGender] = useState("");
+  const [material, setMaterial] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -21,9 +23,11 @@ export default function GenerateTagsPage() {
       const res = await api.post("/ai/generate-tags", {
         title: title.trim(),
         category: category.trim(),
+        gender: gender || undefined,
+        material: material.trim() || undefined,
       });
       setTags(res.data.data.tags);
-      toast.success("Tags generated!");
+      toast.success("Fashion tags generated!");
     } catch {
       toast.error("Failed to generate tags");
     } finally {
@@ -49,10 +53,10 @@ export default function GenerateTagsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white/90">
-          AI Tag Generator
+          AI Fashion Tag Generator
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Generate SEO keywords and tags for your products
+          Generate high-intent SEO keywords, style tags, and trend descriptors
         </p>
       </div>
 
@@ -71,7 +75,7 @@ export default function GenerateTagsPage() {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Samsung Galaxy S24 Ultra"
+              placeholder="e.g. Handloom Silk Jamdani Saree"
               className="input-field"
             />
           </div>
@@ -84,15 +88,47 @@ export default function GenerateTagsPage() {
               type="text"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g. Smartphones"
+              placeholder="e.g. Traditional & Ethnic Wear"
               className="input-field"
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Target Gender
+              </label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="input-field"
+              >
+                <option value="">Select Gender</option>
+                <option value="women">Women</option>
+                <option value="men">Men</option>
+                <option value="kids">Kids</option>
+                <option value="unisex">Unisex</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Material / Fabric
+              </label>
+              <input
+                type="text"
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+                placeholder="e.g. Mulberry Silk"
+                className="input-field"
+              />
+            </div>
           </div>
 
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 transition-colors"
+            className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 transition-colors shadow-sm"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -100,7 +136,7 @@ export default function GenerateTagsPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Generating…
+                Extracting Fashion Tags…
               </span>
             ) : (
               "Generate Tags"
@@ -109,58 +145,57 @@ export default function GenerateTagsPage() {
         </div>
 
         {/* Output */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="flex items-center justify-between mb-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] space-y-4 flex flex-col">
+          <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              Generated Tags
+              Suggested Tags {tags.length > 0 && `(${tags.length})`}
             </h2>
             {tags.length > 0 && (
               <button
                 onClick={copyAll}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+                className="text-xs font-medium text-brand-500 hover:text-brand-600"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                </svg>
-                Copy All
+                Copy All (CSV)
               </button>
             )}
           </div>
 
           {tags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex-1 flex flex-wrap gap-2 content-start">
               {tags.map((tag, i) => (
                 <span
                   key={i}
-                  className="group inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300"
                 >
-                  <button
+                  <span
                     onClick={() => copySingle(tag)}
-                    className="hover:text-brand-800 dark:hover:text-brand-300 transition-colors"
+                    className="cursor-pointer hover:underline"
                     title="Click to copy"
                   >
-                    {tag}
-                  </button>
+                    #{tag}
+                  </span>
                   <button
                     onClick={() => removeTag(i)}
-                    className="opacity-0 group-hover:opacity-100 text-brand-400 hover:text-red-500 transition-all"
-                    title="Remove"
+                    className="text-brand-400 hover:text-brand-600 dark:hover:text-brand-200"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    ×
                   </button>
                 </span>
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <svg className="w-12 h-12 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-              </svg>
-              <p className="text-sm">Enter product details to generate tags</p>
+            <div className="flex-1 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center text-sm text-gray-400 p-8 text-center min-h-[250px]">
+              {loading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <svg className="w-6 h-6 animate-spin text-brand-500" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <p>AI is generating fashion search keywords…</p>
+                </div>
+              ) : (
+                <p>Fill in product details and click generate to view fashion tags here</p>
+              )}
             </div>
           )}
         </div>

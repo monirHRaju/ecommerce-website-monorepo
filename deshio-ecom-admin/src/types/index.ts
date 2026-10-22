@@ -28,17 +28,36 @@ export interface Category {
 
 // ─── Product ─────────────────────────────────────────────────────────────────
 
+export type Gender = "men" | "women" | "kids" | "unisex";
+
+export interface Variant {
+  size: string;
+  color: string;
+  colorHex?: string;
+  sku?: string;
+  stock: number;
+  priceOverride?: number;
+}
+
 export interface Product {
   _id: string;
   title: string;
+  slug?: string;
   description: string;
   brand?: string;
   price: number;
-  discount: number;         // 0-100 percentage
+  discount: number; // 0-100 percentage
   stock: number;
   category: string | Category;
   images: string[];
   tags: string[];
+  // Fashion attributes
+  gender?: Gender;
+  material?: string;
+  fit?: string;
+  careInstructions?: string;
+  sizeGuide?: string;
+  variants?: Variant[];
   specifications: Record<string, string>; // Map<string,string> serialised
   rating: number;
   reviewCount: number;
@@ -66,6 +85,9 @@ export interface OrderItem {
   image: string;
   price: number;
   quantity: number;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 export interface ShippingAddress {
@@ -204,7 +226,13 @@ export interface DashboardChartData {
 
 // ─── Notification ───────────────────────────────────────────────────────────
 
-export type NotificationType = 'order' | 'product' | 'payment' | 'user' | 'review' | 'system';
+export type NotificationType =
+  | "order"
+  | "product"
+  | "payment"
+  | "user"
+  | "review"
+  | "system";
 
 export interface Notification {
   _id: string;
@@ -212,7 +240,7 @@ export interface Notification {
   title: string;
   message: string;
   referenceId?: string;
-  referenceModel?: 'Order' | 'Product' | 'User' | 'Review';
+  referenceModel?: "Order" | "Product" | "User" | "Review";
   isRead: boolean;
   createdAt: string;
   updatedAt: string;

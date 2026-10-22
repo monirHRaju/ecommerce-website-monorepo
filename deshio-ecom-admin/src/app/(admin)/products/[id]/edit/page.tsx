@@ -24,15 +24,29 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   function toFormValues(p: Product): Partial<ProductFormValues> {
     return {
       title: p.title,
+      slug: p.slug ?? "",
       description: p.description,
       price: p.price,
       discount: p.discount ?? 0,
       stock: p.stock,
       brand: p.brand ?? "",
       category: typeof p.category === "object" ? p.category._id : p.category,
+      gender: p.gender ?? "unisex",
+      material: p.material ?? "",
+      fit: p.fit ?? "",
+      careInstructions: p.careInstructions ?? "",
+      sizeGuide: p.sizeGuide ?? "",
       isFeatured: p.isFeatured ?? false,
       tags: (p.tags ?? []).join(", "),
       images: (p.images ?? []).map((url) => ({ url })),
+      variants: (p.variants ?? []).map((v) => ({
+        size: v.size,
+        color: v.color,
+        colorHex: v.colorHex ?? "",
+        sku: v.sku ?? "",
+        stock: v.stock ?? 0,
+        priceOverride: v.priceOverride,
+      })),
       // Convert specifications Record → array of {key, value}
       specs: p.specifications
         ? Object.entries(p.specifications).map(([key, value]) => ({ key, value }))
@@ -43,14 +57,34 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   async function handleSubmit(values: ProductFormValues) {
     const payload = {
       title: values.title,
+      slug: values.slug?.trim() || undefined,
       description: values.description,
       price: values.price,
       discount: values.discount,
-      stock: values.stock,
-      brand: values.brand || undefined,
+      stock:
+        values.variants && values.variants.length > 0
+          ? values.variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0)
+          : values.stock,
+      brand: values.brand?.trim() || undefined,
       category: values.category,
+      gender: values.gender,
+      material: values.material?.trim() || undefined,
+      fit: values.fit?.trim() || undefined,
+      careInstructions: values.careInstructions?.trim() || undefined,
+      sizeGuide: values.sizeGuide?.trim() || undefined,
       isFeatured: values.isFeatured,
       images: values.images.map((img) => img.url),
+      variants: (values.variants || []).map((v) => ({
+        size: v.size.trim(),
+        color: v.color.trim(),
+        colorHex: v.colorHex?.trim() || undefined,
+        sku: v.sku?.trim() || undefined,
+        stock: Number(v.stock) || 0,
+        priceOverride:
+          v.priceOverride !== undefined && v.priceOverride !== null && Number(v.priceOverride) > 0
+            ? Number(v.priceOverride)
+            : undefined,
+      })),
       tags: values.tags
         .split(",")
         .map((t) => t.trim().toLowerCase())

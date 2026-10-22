@@ -159,17 +159,38 @@ function OrderDetailsModal({
                   {order.items.map((item, i) => (
                     <tr key={i} className="border-t border-gray-100 dark:border-gray-800">
                       <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                           {item.image && (
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               src={item.image}
                               alt={item.title}
-                              className="w-8 h-8 rounded object-cover shrink-0"
+                              className="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-100 dark:border-gray-800"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                             />
                           )}
-                          <span className="text-gray-700 dark:text-gray-300 line-clamp-1">{item.title}</span>
+                          <div className="min-w-0">
+                            <span className="text-gray-800 dark:text-gray-200 font-medium line-clamp-1">{item.title}</span>
+                            {(item.size || item.color || item.sku) && (
+                              <div className="flex items-center gap-1.5 text-xs mt-1 flex-wrap">
+                                {item.size && (
+                                  <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded font-medium text-gray-700 dark:text-gray-300">
+                                    Size: {item.size}
+                                  </span>
+                                )}
+                                {item.color && (
+                                  <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded font-medium text-gray-700 dark:text-gray-300">
+                                    Color: {item.color}
+                                  </span>
+                                )}
+                                {item.sku && (
+                                  <span className="font-mono text-[11px] text-gray-400">
+                                    SKU: {item.sku}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-center text-gray-600 dark:text-gray-400">{item.quantity}</td>
@@ -376,20 +397,12 @@ export default function OrdersPage() {
         </div>
         {/* search */}
         <div className="relative w-full sm:w-72">
-          {/* {!search && (
-            <svg
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-            >
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-          )} */}
           <input
             type="text"
             placeholder="Search order # or customer…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={`input-field transition-all ${search ? "pl-3" : "pl-10"}`}
+            className="input-field pl-3"
           />
         </div>
       </div>
