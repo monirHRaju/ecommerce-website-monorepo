@@ -40,7 +40,7 @@ export default function ProductGrid({ params, onPageChange }: Props) {
   if (isLoading) {
     return (
       <div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-4">
           {[...Array(12)].map((_, i) => <ProductSkeleton key={i} />)}
         </div>
       </div>
@@ -84,8 +84,8 @@ export default function ProductGrid({ params, onPageChange }: Props) {
         <span className="font-medium text-base-content">{meta?.total ?? products.length}</span> products
       </p>
 
-      {/* Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Grid: 1 column on mobile, 2 on sm, 3 on lg, 4 on xl */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-4">
         {products.map((product) => (
           <ProductCard key={product._id} product={product} />
         ))}
