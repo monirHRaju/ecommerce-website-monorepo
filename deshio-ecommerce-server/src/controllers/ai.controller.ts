@@ -1,40 +1,38 @@
 import { Request, Response } from 'express';
-import Product from '../models/product.model';
 import Category from '../models/category.model';
+import Product from '../models/product.model';
 import Review from '../models/review.model';
 import AppError from '../utils/AppError';
 import asyncHandler from '../utils/asyncHandler';
-import { geminiModelForChat } from '../utils/gemini';
-import { geminiModelTags } from '../utils/gemini';
+import { geminiModelForChat, geminiModelTags } from '../utils/gemini';
 import sendResponse from '../utils/sendResponse';
 
 // POST /api/v1/ai/generate-description
-// Body: { title, category, brand?, specs? }
+// Body: { title, category, brand?, gender?, material?, fit?, specs? }
 const generateProductDescription = asyncHandler(async (req: Request, res: Response) => {
-  const { title, category, brand, specs } = req.body;
+  const { title, category, brand, gender, material, fit, specs } = req.body;
   if (!title || !category) throw new AppError('Title and category are required', 400);
 
   const specsText =
     specs && Array.isArray(specs) && specs.length > 0
-      ? `\nKey specifications:\n${specs.map((s: string) => `- ${s}`).join('\n')}`
+      ? `\nAdditional details:\n${specs.map((s: string) => `- ${s}`).join('\n')}`
       : '';
 
-  const prompt = `You are a professional product copywriter for an electronics e-commerce store.
-Write a compelling, SEO-friendly product description for the following electronics product.
-The description should be 150-250 words, highlight key benefits, use bullet points for features, and end with a compelling call-to-action.
+  const prompt = `You are an editorial fashion copywriter for a modern clothing and accessories store.
+Write a compelling, SEO-friendly product description for the following fashion piece.
+The description should be 120-200 words, highlight fabric feel, silhouette/fit, and styling versatility, use bullet points for key details, and end with an understated editorial call-to-action.
 
 Product: ${title}
-Category: ${category}${brand ? `\nBrand: ${brand}` : ''}${specsText}
+Category: ${category}${brand ? `\nBrand/Label: ${brand}` : ''}${gender ? `\nCollection: ${gender}` : ''}${material ? `\nMaterial/Fabric: ${material}` : ''}${fit ? `\nFit: ${fit}` : ''}${specsText}
 
 Format the response as:
-[2-3 sentence overview paragraph]
+[2-3 sentence editorial overview paragraph]
 
-Key Features:
-• [feature 1]
-• [feature 2]
-• [feature 3]
-• [feature 4]
-• [feature 5]
+Key Details:
+• [detail 1 — fabric & comfort]
+• [detail 2 — cut/silhouette]
+• [detail 3 — styling versatility]
+• [detail 4 — craftsmanship/finish]
 
 [1 sentence call-to-action]`;
 
@@ -50,16 +48,16 @@ Key Features:
 });
 
 // POST /api/v1/ai/generate-tags
-// Body: { title, category }
+// Body: { title, category, gender?, material? }
 const generateProductTags = asyncHandler(async (req: Request, res: Response) => {
-  const { title, category } = req.body;
+  const { title, category, gender, material } = req.body;
   if (!title || !category) throw new AppError('Title and category are required', 400);
 
-  const prompt = `Generate 6-8 relevant SEO tags/keywords for this electronics product.
+  const prompt = `Generate 6-8 relevant SEO tags/keywords for this fashion product.
 Product: ${title}
-Category: ${category}
+Category: ${category}${gender ? `\nGender: ${gender}` : ''}${material ? `\nMaterial: ${material}` : ''}
 
-Return ONLY a JSON array of lowercase strings. Example: ["tag1", "tag2", "tag3"]
+Return ONLY a JSON array of lowercase strings. Example: ["linen shirt", "summer wear", "menswear"]
 No explanation, just the JSON array.`;
 
   const result = await geminiModelTags.generateContent(prompt);
@@ -91,7 +89,7 @@ const smartSearch = asyncHandler(async (req: Request, res: Response) => {
   const { query } = req.body;
   if (!query) throw new AppError('Search query is required', 400);
 
-  const prompt = `You are a search assistant for an electronics e-commerce store.
+  const prompt = `You are a search assistant for a fashion and apparel e-commerce store.
 Extract structured search filters from this natural language query.
 
 Query: "${query}"
@@ -99,8 +97,11 @@ Query: "${query}"
 Return ONLY a valid JSON object with these optional fields:
 {
   "search": "keyword string for text search",
-  "category": "category name or null",
+  "category": "category slug or name or null",
   "brand": "brand name or null",
+  "gender": "men | women | kids | unisex | null",
+  "size": "XS | S | M | L | XL | XXL | Free Size | null",
+  "color": "color name or null",
   "priceMin": number or null,
   "priceMax": number or null,
   "sort": "price | -price | rating | -createdAt | null"
@@ -140,21 +141,22 @@ const summarizeReviews = asyncHandler(async (req: Request, res: Response) => {
       statusCode: 200,
       success: true,
       message: 'No reviews to summarize',
-      data: { summary: 'No customer reviews yet. Be the first to share your experience!', reviewCount: 0 },
+      data: {
+        summary: 'No customer reviews yet. Be the first to share your thoughts on fit and fabric!',
+        reviewCount: 0,
+      },
     });
   }
 
   const avgRating = (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1);
-  const reviewLines = reviews
-    .map((r) => `★${r.rating}/5 — "${r.comment}"`)
-    .join('\n');
+  const reviewLines = reviews.map((r) => `★${r.rating}/5 — "${r.comment}"`).join('\n');
 
-  const prompt = `You are an AI assistant for an electronics e-commerce store.
-Analyze these ${reviews.length} customer reviews (avg rating: ${avgRating}/5) and write a concise, balanced AI summary (3–4 sentences) to help a buyer decide.
+  const prompt = `You are a style advisor for a fashion e-commerce store.
+Analyze these ${reviews.length} customer reviews (avg rating: ${avgRating}/5) and write a concise, balanced summary (3–4 sentences) to help a shopper decide.
 - Start with the overall sentiment
-- Highlight the top 2 pros customers mention
+- Highlight what customers say about fabric quality, comfort, and sizing/fit accuracy
 - Mention any notable concern if present
-- End with a recommendation sentence
+- End with a brief styling or sizing recommendation
 Be objective, helpful, and conversational. Do NOT use bullet points.
 
 Reviews:
@@ -182,7 +184,7 @@ const chatWithAssistant = asyncHandler(async (req: Request, res: Response) => {
   // Fetch store context
   const [products, categories] = await Promise.all([
     Product.find({})
-      .select('title price brand rating stock discount')
+      .select('title slug price brand gender material fit rating stock discount variants')
       .populate('category', 'name')
       .limit(100)
       .lean(),
@@ -192,29 +194,37 @@ const chatWithAssistant = asyncHandler(async (req: Request, res: Response) => {
   const categoryList = categories.map((c) => c.name).join(', ');
   const productList = products
     .map((p) => {
-      const catName = typeof p.category === 'object' && p.category !== null ? (p.category as any).name : 'Uncategorized';
+      const catName =
+        typeof p.category === 'object' && p.category !== null
+          ? (p.category as any).name
+          : 'Uncategorized';
       const stockStatus = p.stock === 0 ? 'OUT OF STOCK' : `${p.stock} in stock`;
       const discount = p.discount ?? 0;
-      const priceStr = discount > 0 ? `৳${(p.price * (1 - discount / 100)).toFixed(2)} (was ৳${p.price})` : `৳${p.price}`;
-      return `- ${p.title} | ${catName} | ${priceStr}${p.brand ? ` | ${p.brand}` : ''} | Rating: ${p.rating}/5 | ${stockStatus}`;
+      const priceStr =
+        discount > 0
+          ? `৳${Math.round(p.price * (1 - discount / 100))} (was ৳${p.price})`
+          : `৳${p.price}`;
+      const sizes = Array.from(new Set((p.variants ?? []).filter((v) => v.stock > 0).map((v) => v.size))).join('/');
+      const colors = Array.from(new Set((p.variants ?? []).filter((v) => v.stock > 0).map((v) => v.color))).join(', ');
+      return `- ${p.title} (/products/${p.slug}) | ${catName} | ${p.gender ?? 'unisex'} | ${priceStr}${
+        p.material ? ` | ${p.material}` : ''
+      }${sizes ? ` | Sizes: ${sizes}` : ''}${colors ? ` | Colors: ${colors}` : ''} | ★${p.rating}/5 | ${stockStatus}`;
     })
     .join('\n');
 
-  const systemPrompt = `You are "Deshio Assistant", a friendly and knowledgeable shopping assistant for Deshio, a modern electronics e-commerce store.
+  const systemPrompt = `You are a friendly and knowledgeable personal stylist and shopping assistant for our modern fashion store.
 
 Your capabilities:
-- Help customers find products by describing what they need
-- Answer questions about specific products (specs, pricing, availability)
-- Compare products and make recommendations
-- Provide information about categories and brands available in the store
+- Help shoppers find clothing and accessories by occasion, season, fabric, or budget
+- Answer questions about sizes, colors, fit, fabric care, and pricing
+- Suggest outfit pairings and make recommendations from the catalog
 
 Rules:
-- Be concise and helpful. Keep responses under 150 words unless the user asks for detail.
-- When recommending products, mention the product name, price, and a key highlight.
+- Be concise and helpful. Keep responses under 140 words unless the customer asks for detail.
+- When recommending products, mention the product name, price in ৳, available sizes/colors, and a key fabric or fit highlight.
 - If a product is out of stock (stock = 0), mention that it is currently unavailable.
 - Do not make up products that are not in the catalog below.
-- Use a warm, conversational tone.
-- If the user asks about orders, returns, or shipping, let them know they can check their account page or contact support.
+- If the customer asks about orders, returns, or delivery, let them know they can track orders or check their account page.
 
 === STORE CATALOG ===
 Categories: ${categoryList}
@@ -227,11 +237,13 @@ ${productList}
   const recentHistory = Array.isArray(history) ? history.slice(-20) : [];
   const conversationLines = recentHistory
     .map((h: { role: string; content: string }) =>
-      h.role === 'user' ? `Customer: ${h.content}` : `Assistant: ${h.content}`
+      h.role === 'user' ? `Customer: ${h.content}` : `Stylist: ${h.content}`
     )
     .join('\n');
 
-  const fullPrompt = `${systemPrompt}\n\n${conversationLines ? `Conversation so far:\n${conversationLines}\n\n` : ''}Customer: ${message.trim()}`;
+  const fullPrompt = `${systemPrompt}\n\n${
+    conversationLines ? `Conversation so far:\n${conversationLines}\n\n` : ''
+  }Customer: ${message.trim()}`;
 
   const result = await geminiModelForChat.generateContent(fullPrompt);
   const reply = result.response.text().trim();
