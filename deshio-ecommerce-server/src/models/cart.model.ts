@@ -6,6 +6,9 @@ const cartItemSchema = new Schema(
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true },
+    size: { type: String, trim: true },
+    color: { type: String, trim: true },
+    sku: { type: String, trim: true },
   },
   { _id: true }
 );
