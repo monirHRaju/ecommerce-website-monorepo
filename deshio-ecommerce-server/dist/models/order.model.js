@@ -61,6 +61,7 @@ const orderSchema = new mongoose_1.Schema({
         country: { type: String },
         zip: { type: String },
     },
+    phone: { type: String, required: true },
     paymentMethod: { type: String, required: true, default: 'card' },
     paymentStatus: {
         type: String,
@@ -76,7 +77,14 @@ const orderSchema = new mongoose_1.Schema({
     couponDiscount: { type: Number, default: 0 },
     deliveryZoneId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'DeliveryZone' },
     deliveryCharge: { type: Number, default: 0 },
+    codProcessingFee: { type: Number, default: 0 },
     orderNote: { type: String },
+    mobilePayment: {
+        paymentMethodId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'PaymentMethod' },
+        paymentMethodName: { type: String },
+        mobileLast4: { type: String },
+        transactionId: { type: String },
+    },
 }, { timestamps: true });
 // Auto-generate order number before save
 orderSchema.pre('save', function () {

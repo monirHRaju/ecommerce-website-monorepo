@@ -84,6 +84,34 @@ const createCoupon = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0,
         data: coupon,
     });
 }));
+// PATCH /api/v1/coupons/:id  (admin)
+const updateCoupon = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { description, type, value, minOrderAmount, maxUses, expiresAt, isActive } = req.body;
+    const update = {};
+    if (description !== undefined)
+        update.description = description;
+    if (type !== undefined)
+        update.type = type;
+    if (value !== undefined)
+        update.value = value;
+    if (minOrderAmount !== undefined)
+        update.minOrderAmount = minOrderAmount;
+    if (maxUses !== undefined)
+        update.maxUses = maxUses;
+    if (expiresAt !== undefined)
+        update.expiresAt = expiresAt || null;
+    if (isActive !== undefined)
+        update.isActive = isActive;
+    const coupon = yield coupon_model_1.default.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!coupon)
+        throw new AppError_1.default('Coupon not found', 404);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Coupon updated successfully',
+        data: coupon,
+    });
+}));
 // DELETE /api/v1/coupons/:id  (admin)
 const deleteCoupon = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const coupon = yield coupon_model_1.default.findByIdAndDelete(req.params.id);
@@ -95,4 +123,4 @@ const deleteCoupon = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0,
         message: 'Coupon deleted successfully',
     });
 }));
-exports.couponControllers = { validateCoupon, getCoupons, createCoupon, deleteCoupon };
+exports.couponControllers = { validateCoupon, getCoupons, createCoupon, updateCoupon, deleteCoupon };

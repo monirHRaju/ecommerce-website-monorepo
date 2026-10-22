@@ -17,6 +17,7 @@ const product_model_1 = __importDefault(require("../models/product.model"));
 const review_model_1 = __importDefault(require("../models/review.model"));
 const AppError_1 = __importDefault(require("../utils/AppError"));
 const asyncHandler_1 = __importDefault(require("../utils/asyncHandler"));
+const notificationService_1 = require("../utils/notificationService");
 const sendResponse_1 = __importDefault(require("../utils/sendResponse"));
 // Recalculate and update product rating + reviewCount
 const updateProductRating = (productId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -34,6 +35,31 @@ const updateProductRating = (productId) => __awaiter(void 0, void 0, void 0, fun
         yield product_model_1.default.findByIdAndUpdate(productId, { rating: 0, reviewCount: 0 });
     }
 });
+// GET /api/v1/reviews  (admin — all reviews with pagination + filters)
+const getAllReviews = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Number(req.query.limit) || 15);
+    const skip = (page - 1) * limit;
+    const filter = {};
+    if (req.query.rating)
+        filter.rating = Number(req.query.rating);
+    const [reviews, total] = yield Promise.all([
+        review_model_1.default.find(filter)
+            .populate('userId', 'name avatar')
+            .populate('productId', 'title images')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        review_model_1.default.countDocuments(filter),
+    ]);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Reviews retrieved successfully',
+        data: reviews,
+        meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+}));
 // POST /api/v1/reviews
 const addReview = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { productId, rating, comment } = req.body;
@@ -45,6 +71,14 @@ const addReview = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, vo
         throw new AppError_1.default('You have already reviewed this product', 400);
     const review = yield review_model_1.default.create({ userId: req.user.id, productId, rating, comment });
     yield updateProductRating(productId);
+    // Notification: new review submitted
+    (0, notificationService_1.createNotification)({
+        type: 'review',
+        title: 'New Review Submitted',
+        message: `${rating}-star review on "${product.title}"`,
+        referenceId: review._id,
+        referenceModel: 'Review',
+    }).catch(console.error);
     const populated = yield review.populate('userId', 'name avatar');
     (0, sendResponse_1.default)(res, {
         statusCode: 201,
@@ -114,7 +148,8 @@ const deleteReview = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0,
     if (!review)
         throw new AppError_1.default('Review not found', 404);
     const isOwner = String(review.userId) === req.user.id;
-    if (!isOwner && req.user.role !== 'admin') {
+    const isPrivileged = req.user.role === 'admin' || req.user.role === 'super-admin';
+    if (!isOwner && !isPrivileged) {
         throw new AppError_1.default('Not authorized to delete this review', 403);
     }
     const productId = String(review.productId);
@@ -126,4 +161,4 @@ const deleteReview = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0,
         message: 'Review deleted successfully',
     });
 }));
-exports.reviewControllers = { addReview, getProductReviews, getMyReviews, updateReview, deleteReview };
+exports.reviewControllers = { getAllReviews, addReview, getProductReviews, getMyReviews, updateReview, deleteReview };

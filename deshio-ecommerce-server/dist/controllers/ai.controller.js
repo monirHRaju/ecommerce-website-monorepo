@@ -13,10 +13,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiControllers = void 0;
+const product_model_1 = __importDefault(require("../models/product.model"));
+const category_model_1 = __importDefault(require("../models/category.model"));
 const review_model_1 = __importDefault(require("../models/review.model"));
 const AppError_1 = __importDefault(require("../utils/AppError"));
 const asyncHandler_1 = __importDefault(require("../utils/asyncHandler"));
 const gemini_1 = require("../utils/gemini");
+const gemini_2 = require("../utils/gemini");
 const sendResponse_1 = __importDefault(require("../utils/sendResponse"));
 // POST /api/v1/ai/generate-description
 // Body: { title, category, brand?, specs? }
@@ -45,7 +48,7 @@ Key Features:
 • [feature 5]
 
 [1 sentence call-to-action]`;
-    const result = yield gemini_1.geminiModel.generateContent(prompt);
+    const result = yield gemini_2.geminiModelTags.generateContent(prompt);
     const description = result.response.text();
     (0, sendResponse_1.default)(res, {
         statusCode: 200,
@@ -66,7 +69,7 @@ Category: ${category}
 
 Return ONLY a JSON array of lowercase strings. Example: ["tag1", "tag2", "tag3"]
 No explanation, just the JSON array.`;
-    const result = yield gemini_1.geminiModel.generateContent(prompt);
+    const result = yield gemini_2.geminiModelTags.generateContent(prompt);
     const text = result.response.text().trim();
     let tags = [];
     try {
@@ -110,7 +113,7 @@ Return ONLY a valid JSON object with these optional fields:
 }
 
 No explanation, just the JSON object.`;
-    const result = yield gemini_1.geminiModel.generateContent(prompt);
+    const result = yield gemini_2.geminiModelTags.generateContent(prompt);
     const text = result.response.text().trim();
     let filters = {};
     try {
@@ -157,7 +160,7 @@ Be objective, helpful, and conversational. Do NOT use bullet points.
 
 Reviews:
 ${reviewLines}`;
-    const result = yield gemini_1.geminiModel.generateContent(prompt);
+    const result = yield gemini_2.geminiModelTags.generateContent(prompt);
     const summary = result.response.text().trim();
     (0, sendResponse_1.default)(res, {
         statusCode: 200,
@@ -166,9 +169,74 @@ ${reviewLines}`;
         data: { summary, reviewCount: reviews.length, avgRating: Number(avgRating) },
     });
 }));
+// POST /api/v1/ai/chat  (public — no auth required)
+// Body: { message, history: { role: 'user' | 'model', content: string }[] }
+const chatWithAssistant = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { message, history } = req.body;
+    if (!message || typeof message !== 'string' || !message.trim()) {
+        throw new AppError_1.default('Message is required', 400);
+    }
+    // Fetch store context
+    const [products, categories] = yield Promise.all([
+        product_model_1.default.find({})
+            .select('title price brand rating stock discount')
+            .populate('category', 'name')
+            .limit(100)
+            .lean(),
+        category_model_1.default.find({}).select('name slug').lean(),
+    ]);
+    const categoryList = categories.map((c) => c.name).join(', ');
+    const productList = products
+        .map((p) => {
+        var _a;
+        const catName = typeof p.category === 'object' && p.category !== null ? p.category.name : 'Uncategorized';
+        const stockStatus = p.stock === 0 ? 'OUT OF STOCK' : `${p.stock} in stock`;
+        const discount = (_a = p.discount) !== null && _a !== void 0 ? _a : 0;
+        const priceStr = discount > 0 ? `৳${(p.price * (1 - discount / 100)).toFixed(2)} (was ৳${p.price})` : `৳${p.price}`;
+        return `- ${p.title} | ${catName} | ${priceStr}${p.brand ? ` | ${p.brand}` : ''} | Rating: ${p.rating}/5 | ${stockStatus}`;
+    })
+        .join('\n');
+    const systemPrompt = `You are "Deshio Assistant", a friendly and knowledgeable shopping assistant for Deshio, a modern electronics e-commerce store.
+
+Your capabilities:
+- Help customers find products by describing what they need
+- Answer questions about specific products (specs, pricing, availability)
+- Compare products and make recommendations
+- Provide information about categories and brands available in the store
+
+Rules:
+- Be concise and helpful. Keep responses under 150 words unless the user asks for detail.
+- When recommending products, mention the product name, price, and a key highlight.
+- If a product is out of stock (stock = 0), mention that it is currently unavailable.
+- Do not make up products that are not in the catalog below.
+- Use a warm, conversational tone.
+- If the user asks about orders, returns, or shipping, let them know they can check their account page or contact support.
+
+=== STORE CATALOG ===
+Categories: ${categoryList}
+
+Products:
+${productList}
+=== END CATALOG ===`;
+    // Build conversation string from history (truncate to last 20 messages)
+    const recentHistory = Array.isArray(history) ? history.slice(-20) : [];
+    const conversationLines = recentHistory
+        .map((h) => h.role === 'user' ? `Customer: ${h.content}` : `Assistant: ${h.content}`)
+        .join('\n');
+    const fullPrompt = `${systemPrompt}\n\n${conversationLines ? `Conversation so far:\n${conversationLines}\n\n` : ''}Customer: ${message.trim()}`;
+    const result = yield gemini_1.geminiModelForChat.generateContent(fullPrompt);
+    const reply = result.response.text().trim();
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Chat response generated',
+        data: { reply },
+    });
+}));
 exports.aiControllers = {
     generateProductDescription,
     generateProductTags,
     smartSearch,
     summarizeReviews,
+    chatWithAssistant,
 };

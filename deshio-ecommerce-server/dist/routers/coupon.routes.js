@@ -14,5 +14,6 @@ router.post('/validate', coupon_controller_1.couponControllers.validateCoupon);
 // Admin only
 router.get('/', auth_middleware_1.default, (0, role_middleware_1.default)('admin'), coupon_controller_1.couponControllers.getCoupons);
 router.post('/', auth_middleware_1.default, (0, role_middleware_1.default)('admin'), coupon_controller_1.couponControllers.createCoupon);
+router.patch('/:id', auth_middleware_1.default, (0, role_middleware_1.default)('admin'), coupon_controller_1.couponControllers.updateCoupon);
 router.delete('/:id', auth_middleware_1.default, (0, role_middleware_1.default)('admin'), coupon_controller_1.couponControllers.deleteCoupon);
 exports.CouponRoutes = router;
