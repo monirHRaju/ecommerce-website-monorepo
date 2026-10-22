@@ -11,13 +11,10 @@ const routers_1 = __importDefault(require("./routers"));
 const app = (0, express_1.default)();
 // Parsers
 app.use(express_1.default.json());
-// CORS — allow all configured origins
-const allowedOrigins = [
-    process.env.PUBLIC_URL,
-    process.env.PUBLIC_ADMIN_URL,
-    'http://localhost:3000',
-    'http://localhost:3001',
-].filter(Boolean);
+// CORS — allow all configured origins (comma-separated PUBLIC_URL supports multiple)
+const allowedOrigins = (process.env.PUBLIC_URL || 'http://localhost:3000')
+    .split(',')
+    .map((o) => o.trim());
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
         // allow server-to-server (no origin) and whitelisted origins

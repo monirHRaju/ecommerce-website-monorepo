@@ -10,7 +10,6 @@ const auth_middleware_1 = __importDefault(require("../middlewares/auth.middlewar
 const router = express_1.default.Router();
 // Public (no auth required)
 router.post('/summarize-reviews', ai_controller_1.aiControllers.summarizeReviews);
-router.post('/chat', ai_controller_1.aiControllers.chatWithAssistant);
 // Protected
 router.use(auth_middleware_1.default);
 router.post('/generate-description', ai_controller_1.aiControllers.generateProductDescription);

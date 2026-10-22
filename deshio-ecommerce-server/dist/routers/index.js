@@ -10,12 +10,10 @@ const cart_routes_1 = require("./cart.routes");
 const category_routes_1 = require("./category.routes");
 const coupon_routes_1 = require("./coupon.routes");
 const dashboard_routes_1 = require("./dashboard.routes");
-const notification_routes_1 = require("./notification.routes");
 const deliveryZone_routes_1 = require("./deliveryZone.routes");
 const order_routes_1 = require("./order.routes");
 const product_route_1 = require("./product.route");
 const review_routes_1 = require("./review.routes");
-const paymentMethod_routes_1 = require("./paymentMethod.routes");
 const user_router_1 = require("./user.router");
 const router = express_1.default.Router();
 const moduleRoutes = [
@@ -28,9 +26,7 @@ const moduleRoutes = [
     { path: '/orders', route: order_routes_1.OrderRoutes },
     { path: '/coupons', route: coupon_routes_1.CouponRoutes },
     { path: '/delivery-zones', route: deliveryZone_routes_1.DeliveryZoneRoutes },
-    { path: '/payment-methods', route: paymentMethod_routes_1.PaymentMethodRoutes },
     { path: '/dashboard', route: dashboard_routes_1.DashboardRoutes },
-    { path: '/notifications', route: notification_routes_1.NotificationRoutes },
     { path: '/ai', route: ai_routes_1.AiRoutes },
 ];
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

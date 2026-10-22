@@ -17,21 +17,17 @@ const cart_model_1 = __importDefault(require("../models/cart.model"));
 const coupon_model_1 = __importDefault(require("../models/coupon.model"));
 const deliveryZone_model_1 = __importDefault(require("../models/deliveryZone.model"));
 const order_model_1 = __importDefault(require("../models/order.model"));
-const paymentMethod_model_1 = __importDefault(require("../models/paymentMethod.model"));
 const product_model_1 = __importDefault(require("../models/product.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const AppError_1 = __importDefault(require("../utils/AppError"));
 const asyncHandler_1 = __importDefault(require("../utils/asyncHandler"));
-const notificationService_1 = require("../utils/notificationService");
 const sendResponse_1 = __importDefault(require("../utils/sendResponse"));
 // POST /api/v1/orders  { shippingAddress, paymentMethod, deliveryZoneId?, couponCode?, orderNote? }
 const createOrder = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const { shippingAddress, phone, paymentMethod = 'card', deliveryZoneId, couponCode, orderNote, mobilePayment } = req.body;
+    const { shippingAddress, paymentMethod = 'card', deliveryZoneId, couponCode, orderNote } = req.body;
     if (!shippingAddress)
         throw new AppError_1.default('Shipping address is required', 400);
-    if (!phone)
-        throw new AppError_1.default('Mobile number is required', 400);
     // Require verified email to place orders
     const buyer = yield user_model_1.default.findById(req.user.id);
     if (!(buyer === null || buyer === void 0 ? void 0 : buyer.isVerified)) {
@@ -91,64 +87,19 @@ const createOrder = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
         // Increment usage count
         yield coupon_model_1.default.findByIdAndUpdate(coupon._id, { $inc: { usedCount: 1 } });
     }
-    // ── COD processing fee ─────────────────────────────────────────────────────
-    const codProcessingFee = paymentMethod === 'cash_on_delivery' ? 20 : 0;
-    const totalAmount = Math.max(0, itemsTotal + deliveryCharge - couponDiscount + codProcessingFee);
-    // ── Mobile payment validation ───────────────────────────────────────────────
-    let resolvedMobilePayment;
-    if (paymentMethod === 'mobile_banking') {
-        if (!(mobilePayment === null || mobilePayment === void 0 ? void 0 : mobilePayment.paymentMethodId) || !(mobilePayment === null || mobilePayment === void 0 ? void 0 : mobilePayment.mobileLast4) || !(mobilePayment === null || mobilePayment === void 0 ? void 0 : mobilePayment.transactionId)) {
-            throw new AppError_1.default('Mobile payment details (payment method, last 4 digits, transaction ID) are required', 400);
-        }
-        if (!/^\d{4}$/.test(mobilePayment.mobileLast4)) {
-            throw new AppError_1.default('Mobile last 4 digits must be exactly 4 digits', 400);
-        }
-        const method = yield paymentMethod_model_1.default.findById(mobilePayment.paymentMethodId);
-        if (!method || !method.isActive)
-            throw new AppError_1.default('Selected payment method is unavailable', 400);
-        resolvedMobilePayment = {
-            paymentMethodId: method._id,
-            paymentMethodName: method.name,
-            mobileLast4: mobilePayment.mobileLast4,
-            transactionId: mobilePayment.transactionId.trim(),
-        };
-    }
+    const totalAmount = Math.max(0, itemsTotal + deliveryCharge - couponDiscount);
     const order = yield order_model_1.default.create({
         userId: req.user.id,
         items: orderItems,
         totalAmount,
         shippingAddress,
-        phone,
         paymentMethod,
         deliveryZoneId: resolvedDeliveryZoneId,
         deliveryCharge,
-        codProcessingFee,
         couponCode: appliedCouponCode,
         couponDiscount,
         orderNote: orderNote || undefined,
-        mobilePayment: resolvedMobilePayment,
     });
-    // Notification: new order placed
-    (0, notificationService_1.createNotification)({
-        type: 'order',
-        title: 'New Order Placed',
-        message: `Order ${order.orderNumber} placed for ৳${order.totalAmount.toLocaleString()}`,
-        referenceId: order._id,
-        referenceModel: 'Order',
-    }).catch(console.error);
-    // Notification: low stock alerts
-    for (const item of orderItems) {
-        const updatedProduct = yield product_model_1.default.findById(item.productId).select('stock title');
-        if (updatedProduct && updatedProduct.stock <= notificationService_1.LOW_STOCK_THRESHOLD) {
-            (0, notificationService_1.createNotification)({
-                type: 'product',
-                title: 'Low Stock Alert',
-                message: `"${updatedProduct.title}" has only ${updatedProduct.stock} units remaining`,
-                referenceId: updatedProduct._id,
-                referenceModel: 'Product',
-            }).catch(console.error);
-        }
-    }
     // Clear cart after order
     yield cart_model_1.default.findOneAndUpdate({ userId: req.user.id }, { items: [], totalAmount: 0 });
     (0, sendResponse_1.default)(res, {
@@ -237,14 +188,6 @@ const cancelOrder = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
     }
     order.orderStatus = 'cancelled';
     yield order.save();
-    // Notification: order cancelled
-    (0, notificationService_1.createNotification)({
-        type: 'order',
-        title: 'Order Cancelled',
-        message: `Order ${order.orderNumber} was cancelled by the customer`,
-        referenceId: order._id,
-        referenceModel: 'Order',
-    }).catch(console.error);
     (0, sendResponse_1.default)(res, {
         statusCode: 200,
         success: true,

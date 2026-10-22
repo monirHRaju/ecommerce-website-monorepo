@@ -22,7 +22,6 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const AppError_1 = __importDefault(require("../utils/AppError"));
 const email_1 = require("../utils/email");
 const asyncHandler_1 = __importDefault(require("../utils/asyncHandler"));
-const notificationService_1 = require("../utils/notificationService");
 const sendResponse_1 = __importDefault(require("../utils/sendResponse"));
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const generateTokens = (payload) => {
@@ -55,14 +54,6 @@ const register = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, voi
         verificationToken,
         verificationTokenExpires,
     });
-    // Notification: new user registered
-    (0, notificationService_1.createNotification)({
-        type: 'user',
-        title: 'New User Registered',
-        message: `${user.name} (${user.email}) has registered`,
-        referenceId: user._id,
-        referenceModel: 'User',
-    }).catch(console.error);
     // Send verification email (non-blocking)
     (0, email_1.sendVerificationEmail)(name, email, verificationToken).catch((err) => {
         console.error('[Email] Verification email failed:', err.message);
