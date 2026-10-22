@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sparkles, Star, UserCircle2, X } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { Review } from "@/types";

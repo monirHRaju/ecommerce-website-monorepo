@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart, ShoppingCart, Star } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import { Product } from "@/types";
 import { discountedPrice, formatPrice } from "@/utils/formatPrice";
 import { useCart } from "@/context/CartContext";

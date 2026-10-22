@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import api from "@/lib/axios";
 
 const schema = z

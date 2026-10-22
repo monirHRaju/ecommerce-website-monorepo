@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2, LogIn, User, ShieldCheck } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 

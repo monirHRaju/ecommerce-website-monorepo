@@ -15,7 +15,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

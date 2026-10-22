@@ -15,7 +15,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 
 export default function CartSidebar() {
   const { user } = useAuth();

@@ -22,12 +22,12 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useTheme } from "next-themes";
+
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || "";
 
@@ -285,7 +285,7 @@ export default function Navbar() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { totalItems, openCart } = useCart();
-  const { theme, setTheme } = useTheme();
+  
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -355,15 +355,7 @@ export default function Navbar() {
 
           {/* Right Actions */}
           <div className="flex shrink-0 items-center gap-1">
-            {mounted && (
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="btn btn-ghost btn-sm btn-circle"
-                aria-label="Toggle theme"
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
-            )}
+            
 
             {/* Wishlist — only for logged-in users */}
             {user && (
@@ -573,15 +565,7 @@ export default function Navbar() {
           </nav>
 
           <div className="border-t border-base-300 px-5 py-4 space-y-3">
-            {mounted && (
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-base-content/70 hover:bg-base-200 transition-colors"
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {theme === "dark" ? "Light Mode" : "Dark Mode"}
-              </button>
-            )}
+            
             {user ? (
               <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-error hover:bg-error/10 transition-colors">
                 <LogOut className="h-4 w-4" /> Logout

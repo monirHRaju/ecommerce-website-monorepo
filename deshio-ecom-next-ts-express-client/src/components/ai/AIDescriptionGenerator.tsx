@@ -3,7 +3,7 @@
 import api from "@/lib/axios";
 import { Sparkles, Tag, Wand2 } from "lucide-react";
 import { useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 
 interface Props {
   title: string;

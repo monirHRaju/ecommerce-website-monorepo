@@ -1,30 +1,42 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import Providers from "@/providers/Providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const playfair = Playfair_Display({
   subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Deshio — Modern Electronics Store",
-    template: "%s | Deshio",
+    default: "Deshio — Luxury & Contemporary Fashion",
+    template: "%s | Deshio Fashion",
   },
   description:
-    "Discover the latest electronics, gadgets, and tech accessories at unbeatable prices.",
-  keywords: ["electronics", "gadgets", "smartphones", "laptops", "ecommerce"],
+    "Discover timeless elegance, premium fabrics, and contemporary fashion for men, women, and kids.",
+  keywords: [
+    "fashion",
+    "clothing",
+    "apparel",
+    "menswear",
+    "womenswear",
+    "panjabi",
+    "sarees",
+    "contemporary style",
+    "ecommerce",
+  ],
   icons: { icon: "/deshio_logo_icon.ico" },
   openGraph: {
-    title: "Deshio — Modern Electronics Store",
-    description: "Discover the latest electronics at unbeatable prices.",
+    title: "Deshio — Luxury & Contemporary Fashion",
+    description: "Discover timeless elegance and contemporary fashion.",
     type: "website",
   },
 };
@@ -33,10 +45,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className={`${playfair.variable} ${jakarta.variable}`}>
+      <body className="font-sans antialiased bg-white text-stone-900 selection:bg-stone-900 selection:text-white">
         <Providers>{children}</Providers>
       </body>
     </html>

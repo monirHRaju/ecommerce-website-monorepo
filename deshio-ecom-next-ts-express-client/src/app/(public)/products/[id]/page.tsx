@@ -19,7 +19,7 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import ImageGallery from "@/components/products/ImageGallery";
 import RelatedProducts from "@/components/products/RelatedProducts";
 import ReviewSection from "@/components/products/ReviewSection";

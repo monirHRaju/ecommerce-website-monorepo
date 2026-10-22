@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 

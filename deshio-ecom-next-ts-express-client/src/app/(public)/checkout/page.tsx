@@ -24,9 +24,9 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import { z } from "zod";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -160,7 +160,13 @@ export default function CheckoutPage() {
   const grandTotal = Math.max(0, totalPrice + deliveryCharge - couponDiscount);
 
   // Guards
-  if (!user) { router.replace("/login?redirect=/checkout"); return null; }
+  useEffect(() => {
+    if (!user) {
+      router.replace("/login?redirect=/checkout");
+    }
+  }, [user, router]);
+
+  if (!user) return null;
   if (items.length === 0 && !orderNumber) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
