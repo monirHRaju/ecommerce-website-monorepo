@@ -176,8 +176,7 @@ export interface Coupon {
 export interface DeliveryZone {
   _id: string;
   name: string;
-  countries: string[];
-  shippingFee: number;
+  charge: number;
   estimatedDays: string;
   isActive: boolean;
   createdAt: string;

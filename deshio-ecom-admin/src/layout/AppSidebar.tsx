@@ -16,6 +16,7 @@ import {
   HorizontaLDots,
   ListIcon,
   PageIcon,
+  PaperPlaneIcon,
   UserCircleIcon,
 } from "../icons/index";
 
@@ -60,6 +61,11 @@ const navItems: NavItem[] = [
     icon: <PageIcon />,
     name: "Payment Methods",
     path: "/payment-methods",
+  },
+  {
+    icon: <PaperPlaneIcon />,
+    name: "Delivery Options",
+    path: "/delivery-zones",
   },
   {
     icon: <DollarLineIcon />,

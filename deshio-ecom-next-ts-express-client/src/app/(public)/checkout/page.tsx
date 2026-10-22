@@ -39,7 +39,7 @@ const schema = z
     zip: z.string().min(3, "ZIP / Postal code is required"),
     phone: z.string().min(11, "Enter a valid mobile number").max(15),
     deliveryZoneId: z.string().min(1, "Please select a delivery option"),
-    paymentMethod: z.enum(["cash_on_delivery", "credit_card", "mobile_banking"] as const, {
+    paymentMethod: z.enum(["cash_on_delivery", "mobile_banking"] as const, {
       error: "Select a payment method",
     }),
     orderNote: z.string().max(300).optional(),
@@ -158,6 +158,13 @@ export default function CheckoutPage() {
   const deliveryCharge = selectedZone?.charge ?? 0;
   const couponDiscount = appliedCoupon?.discount ?? 0;
   const grandTotal = Math.max(0, totalPrice + deliveryCharge - couponDiscount);
+
+  // Auto-select first delivery zone
+  useEffect(() => {
+    if (deliveryZones.length > 0 && !watch("deliveryZoneId")) {
+      setValue("deliveryZoneId", deliveryZones[0]._id);
+    }
+  }, [deliveryZones, setValue, watch]);
 
   // Guards
   useEffect(() => {
@@ -320,7 +327,7 @@ export default function CheckoutPage() {
                         <p className="font-semibold text-sm">{zone.name}</p>
                         <p className="text-xs text-base-content/50">Est. delivery: {zone.estimatedDays}</p>
                       </div>
-                      <span className="font-bold text-sm text-primary">Tk. {zone.charge}</span>
+                      <span className="font-bold text-sm text-primary">{formatPrice(zone.charge)}</span>
                     </label>
                   ))}
                 </div>
@@ -377,7 +384,6 @@ export default function CheckoutPage() {
               <div className="space-y-2">
                 {[
                   { value: "cash_on_delivery", label: "Cash on Delivery", sub: "Pay when your order arrives", icon: "💵" },
-                  { value: "credit_card", label: "Credit / Debit Card", sub: "Visa, Mastercard, Amex (demo)", icon: "💳" },
                   { value: "mobile_banking", label: "Mobile Banking", sub: "bKash, Rocket, Nagad", icon: <Smartphone className="w-5 h-5" /> },
                 ].map(({ value, label, sub, icon }) => (
                   <label
@@ -572,7 +578,7 @@ export default function CheckoutPage() {
                   </span>
                   <span>
                     {selectedZone
-                      ? <span className="font-medium">Tk. {deliveryCharge}</span>
+                      ? <span className="font-medium">{formatPrice(deliveryCharge)}</span>
                       : <span className="text-base-content/40 italic text-xs">select zone</span>}
                   </span>
                 </div>
