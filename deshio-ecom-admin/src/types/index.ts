@@ -260,3 +260,30 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
 }
+
+// ─── Site Settings & SEO ──────────────────────────────────────────────────────
+export interface SiteSettings {
+  _id?: string;
+  siteName: string;
+  siteTitle: string;
+  titleTemplate: string;
+  metaDescription: string;
+  metaKeywords: string[];
+  canonicalUrl: string;
+  ogImage: string;
+  twitterHandle: string;
+  googleSiteVerification?: string;
+  bingSiteVerification?: string;
+  indexSite: boolean;
+  contactEmail?: string;
+  contactPhone?: string;
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    youtube?: string;
+    pinterest?: string;
+    tiktok?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}

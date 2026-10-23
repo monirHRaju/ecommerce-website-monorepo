@@ -12,6 +12,7 @@ import { ProductRoutes } from './product.route';
 import { ReviewRoutes } from './review.routes';
 import { PaymentMethodRoutes } from './paymentMethod.routes';
 import { UserRoutes } from './user.router';
+import { SettingsRoutes } from './settings.routes';
 
 const router = express.Router();
 
@@ -29,6 +30,7 @@ const moduleRoutes = [
   { path: '/dashboard', route: DashboardRoutes },
   { path: '/notifications', route: NotificationRoutes },
   { path: '/ai', route: AiRoutes },
+  { path: '/settings', route: SettingsRoutes },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

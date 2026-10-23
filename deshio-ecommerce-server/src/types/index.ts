@@ -217,3 +217,28 @@ declare global {
     interface User extends JwtPayload {}
   }
 }
+
+// ─── Site Settings & SEO ──────────────────────────────────────────────────────
+export interface ISiteSettings {
+  _id?: Types.ObjectId;
+  siteName: string;
+  siteTitle: string;
+  titleTemplate: string;
+  metaDescription: string;
+  metaKeywords: string[];
+  canonicalUrl: string;
+  ogImage: string;
+  twitterHandle: string;
+  googleSiteVerification?: string;
+  bingSiteVerification?: string;
+  indexSite: boolean;
+  contactEmail?: string;
+  contactPhone?: string;
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    youtube?: string;
+    pinterest?: string;
+    tiktok?: string;
+  };
+}

@@ -95,6 +95,7 @@ const othersItems: NavItem[] = [
     subItems: [
       { name: "My Profile", path: "/settings/profile" },
       { name: "Change Password", path: "/settings/password" },
+      { name: "SEO & Metadata", path: "/settings/seo" },
     ],
   },
 ];
