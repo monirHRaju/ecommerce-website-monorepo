@@ -54,15 +54,33 @@ export interface Category {
 
 // ─── Product ─────────────────────────────────────────────────────────────────
 
+export type Gender = "men" | "women" | "unisex" | "kids";
+
+export interface Variant {
+  size?: string;
+  color?: string;
+  sku?: string;
+  stock: number;
+  priceOverride?: number;
+}
+
 export interface Product {
   _id: string;
   title: string;
+  slug?: string;
   description: string;
   images: string[];
   price: number;
   discount: number;
   brand: string;
   category: string | Category;
+  // Fashion attributes
+  gender?: Gender;
+  material?: string;
+  fit?: string;
+  careInstructions?: string;
+  sizeGuide?: string;
+  variants?: Variant[];
   rating: number;
   reviewCount: number;
   stock: number;
@@ -141,6 +159,9 @@ export interface OrderItem {
   price: number;
   title: string;
   image?: string;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 export interface Order {

@@ -1,4 +1,4 @@
-const API_BASE =
+export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 export interface ApiResponse<T = unknown> {
