@@ -7,6 +7,7 @@ import CategoryTiles from "@/components/home/CategoryTiles";
 import ProductShowcase from "@/components/home/ProductShowcase";
 import ShopByGender from "@/components/home/ShopByGender";
 import FashionFAQ from "@/components/home/FashionFAQ";
+import { WebSiteJsonLd } from "@/components/seo/JsonLd";
 
 export const revalidate = 300;
 
@@ -68,8 +69,12 @@ export default async function HomePage() {
     getCategories(),
   ]);
 
+  const canonicalUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://deshio.com";
+
   return (
     <main className="min-h-screen bg-stone-50/30">
+      <WebSiteJsonLd siteName="Deshio" url={canonicalUrl} />
+
       {/* 1. Hero — Editorial static CSS Hero (LCP priority) */}
       <HeroSection />
 

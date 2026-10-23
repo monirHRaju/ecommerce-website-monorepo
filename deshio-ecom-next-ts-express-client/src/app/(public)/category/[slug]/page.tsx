@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import CatalogView from "@/components/products/CatalogView";
 import { API_BASE } from "@/lib/api";
 import { Category } from "@/types";
+import { BreadcrumbJsonLd } from "@/components/seo/JsonLd";
 
 export const revalidate = 300;
 
@@ -44,12 +45,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function CategoryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://deshio.com";
+  const formattedName = slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
+  const breadcrumbs = [
+    { name: "Home", url: `${baseUrl}` },
+    { name: "Catalog", url: `${baseUrl}/products` },
+    { name: formattedName, url: `${baseUrl}/category/${slug}` },
+  ];
 
   return (
-    <CatalogView
-      categorySlug={slug}
-      basePath={`/category/${slug}`}
-      searchParams={resolvedSearchParams}
-    />
+    <>
+      <BreadcrumbJsonLd items={breadcrumbs} />
+      <CatalogView
+        categorySlug={slug}
+        basePath={`/category/${slug}`}
+        searchParams={resolvedSearchParams}
+      />
+    </>
   );
 }

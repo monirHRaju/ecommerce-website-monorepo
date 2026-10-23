@@ -9,6 +9,7 @@ import AddToCartPanel from "@/components/products/AddToCartPanel";
 import FashionProductDetails from "@/components/products/FashionProductDetails";
 import ReviewSection from "@/components/products/ReviewSection";
 import RelatedProducts from "@/components/products/RelatedProducts";
+import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/seo/JsonLd";
 
 export const revalidate = 300;
 
@@ -89,8 +90,30 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const categoryObj = typeof product.category === "object" ? product.category : null;
   const categoryId = categoryObj?._id || (typeof product.category === "string" ? product.category : "");
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://deshio.com";
+  const productUrl = `${baseUrl}/products/${product.slug || product._id}`;
+
+  const breadcrumbItems = [
+    { name: "Home", url: `${baseUrl}` },
+    { name: "Catalog", url: `${baseUrl}/products` },
+    ...(categoryObj
+      ? [{ name: categoryObj.name, url: `${baseUrl}/category/${categoryObj.slug}` }]
+      : []),
+    ...(product.gender
+      ? [
+          {
+            name: product.gender.charAt(0).toUpperCase() + product.gender.slice(1),
+            url: `${baseUrl}/gender/${product.gender}`,
+          },
+        ]
+      : []),
+    { name: product.title, url: productUrl },
+  ];
+
   return (
     <div className="min-h-screen bg-stone-50/30">
+      <ProductJsonLd product={product} url={productUrl} />
+      <BreadcrumbJsonLd items={breadcrumbItems} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* ── Breadcrumb Navigation ─────────────────────────────────── */}
         <nav className="flex items-center gap-2 text-xs text-stone-400 mb-8 overflow-x-auto pb-1">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import CatalogView from "@/components/products/CatalogView";
 import { notFound } from "next/navigation";
+import { BreadcrumbJsonLd } from "@/components/seo/JsonLd";
 
 export const revalidate = 300;
 
@@ -43,12 +44,30 @@ export default async function GenderPage({ params, searchParams }: PageProps) {
   }
 
   const resolvedSearchParams = await searchParams;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://deshio.com";
+  const label =
+    normalized === "women"
+      ? "Women's Collection"
+      : normalized === "men"
+      ? "Men's Collection"
+      : normalized === "kids"
+      ? "Kids' Collection"
+      : "Unisex & Heritage Collection";
+
+  const breadcrumbs = [
+    { name: "Home", url: `${baseUrl}` },
+    { name: "Catalog", url: `${baseUrl}/products` },
+    { name: label, url: `${baseUrl}/gender/${normalized}` },
+  ];
 
   return (
-    <CatalogView
-      genderFilter={normalized}
-      basePath={`/gender/${normalized}`}
-      searchParams={resolvedSearchParams}
-    />
+    <>
+      <BreadcrumbJsonLd items={breadcrumbs} />
+      <CatalogView
+        genderFilter={normalized}
+        basePath={`/gender/${normalized}`}
+        searchParams={resolvedSearchParams}
+      />
+    </>
   );
 }
