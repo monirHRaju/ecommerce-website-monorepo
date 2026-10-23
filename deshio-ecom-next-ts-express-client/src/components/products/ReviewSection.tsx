@@ -11,14 +11,14 @@ import { cn } from "@/utils/cn";
 
 interface Props {
   productId: string;
-  rating: number;
-  reviewCount: number;
+  rating?: number;
+  reviewCount?: number;
 }
 
 function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hover, setHover] = useState(0);
   return (
-    <div className="flex gap-0.5">
+    <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((s) => (
         <button
           key={s}
@@ -30,8 +30,8 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
         >
           <Star
             className={cn(
-              "w-7 h-7 transition-colors",
-              s <= (hover || value) ? "fill-secondary text-secondary" : "fill-base-300 text-base-300"
+              "w-6 h-6 transition-colors",
+              s <= (hover || value) ? "fill-amber-400 text-amber-400" : "fill-stone-200 text-stone-200"
             )}
           />
         </button>
@@ -43,16 +43,16 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
 function RatingBar({ star, count, total }: { star: number; count: number; total: number }) {
   const pct = total ? Math.round((count / total) * 100) : 0;
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="w-3 text-right text-base-content/60">{star}</span>
-      <Star className="w-3.5 h-3.5 fill-secondary text-secondary shrink-0" />
-      <div className="flex-1 h-2 bg-base-300 rounded-full overflow-hidden">
+    <div className="flex items-center gap-2 text-xs">
+      <span className="w-3 text-right text-stone-500 font-medium">{star}</span>
+      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+      <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
         <div
-          className="h-full bg-secondary rounded-full transition-all duration-500"
+          className="h-full bg-amber-400 rounded-full transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="w-6 text-right text-base-content/40 text-xs">{pct}%</span>
+      <span className="w-7 text-right text-stone-400 text-[11px]">{pct}%</span>
     </div>
   );
 }
@@ -60,32 +60,36 @@ function RatingBar({ star, count, total }: { star: number; count: number; total:
 // ─── AI Summary Card ──────────────────────────────────────────────────────────
 function AISummaryCard({ summary, onClose }: { summary: string; onClose: () => void }) {
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-violet-400/30 bg-gradient-to-br from-violet-500/10 via-base-100 to-primary/5 p-5 shadow-lg">
+    <div className="relative rounded-xl overflow-hidden border border-amber-200 bg-amber-50/50 p-5 shadow-xs">
       <button
         onClick={onClose}
-        className="absolute top-3 right-3 btn btn-ghost btn-xs btn-circle"
+        className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-stone-400 hover:text-stone-800 hover:bg-white"
         aria-label="Close summary"
       >
         <X className="w-3.5 h-3.5" />
       </button>
 
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-violet-500/20">
-          <Sparkles className="w-4 h-4 text-violet-500" />
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-800">
+          <Sparkles className="w-3.5 h-3.5" />
         </div>
         <div>
-          <p className="text-sm font-bold text-base-content">AI Review Summary</p>
-          <p className="text-xs text-base-content/40">Powered by Gemini AI</p>
+          <p className="text-xs font-bold text-stone-900">AI Verified Summary</p>
+          <p className="text-[10px] text-stone-500">Concierge Synthesis</p>
         </div>
       </div>
 
-      <p className="text-sm text-base-content/80 leading-relaxed">{summary}</p>
+      <p className="text-xs text-stone-700 leading-relaxed">{summary}</p>
     </div>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function ReviewSection({ productId, rating, reviewCount }: Props) {
+export default function ReviewSection({
+  productId,
+  rating: initialRating,
+  reviewCount: initialReviewCount,
+}: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [newRating, setNewRating] = useState(0);
@@ -100,23 +104,37 @@ export default function ReviewSection({ productId, rating, reviewCount }: Props)
     },
   });
 
+  const effectiveRating =
+    initialRating !== undefined
+      ? initialRating
+      : reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : 5;
+
+  const effectiveCount =
+    initialReviewCount !== undefined ? initialReviewCount : reviews.length;
+
   const { mutate: addReview, isPending } = useMutation({
     mutationFn: () => api.post("/reviews", { productId, rating: newRating, comment }),
     onSuccess: () => {
-      toast.success("Review submitted!");
+      toast.success("Review submitted! Thank you for sharing.");
       setNewRating(0);
       setComment("");
       qc.invalidateQueries({ queryKey: ["reviews", productId] });
       qc.invalidateQueries({ queryKey: ["product", productId] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || "Failed to submit review"),
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message || "Failed to submit review"),
   });
 
   const { mutate: generateSummary, isPending: summaryLoading } = useMutation({
     mutationFn: () => api.post("/ai/summarize-reviews", { productId }),
     onSuccess: (res) => setAiSummary(res.data.data.summary),
     onError: (err: any) => {
-      const msg = err?.response?.data?.debug || err?.response?.data?.message || "Could not generate summary. Please try again.";
+      const msg =
+        err?.response?.data?.debug ||
+        err?.response?.data?.message ||
+        "Could not generate summary. Please try again.";
       toast.error(msg);
     },
   });
@@ -134,53 +152,65 @@ export default function ReviewSection({ productId, rating, reviewCount }: Props)
 
   return (
     <section className="space-y-8">
-      <h2 className="text-xl font-black text-base-content">Customer Reviews</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-serif text-2xl font-bold text-stone-900">
+          Client Feedback & Reviews
+        </h2>
+      </div>
 
       {/* Rating summary + AI button */}
-      <div className="flex flex-col sm:flex-row gap-8 items-start">
+      <div className="flex flex-col sm:flex-row gap-8 items-start bg-white p-6 rounded-2xl border border-stone-200 shadow-xs">
         {/* Overall score */}
-        <div className="text-center shrink-0">
-          <p className="text-6xl font-black text-base-content">{rating.toFixed(1)}</p>
-          <div className="flex justify-center gap-0.5 my-1">
+        <div className="text-center shrink-0 w-full sm:w-44 border-b sm:border-b-0 sm:border-r border-stone-200 pb-6 sm:pb-0 sm:pr-6">
+          <p className="font-serif text-5xl font-bold text-stone-900">
+            {effectiveRating.toFixed(1)}
+          </p>
+          <div className="flex justify-center gap-1 my-2">
             {[1, 2, 3, 4, 5].map((s) => (
               <Star
                 key={s}
                 className={cn(
                   "w-4 h-4",
-                  s <= Math.round(rating) ? "fill-secondary text-secondary" : "fill-base-300 text-base-300"
+                  s <= Math.round(effectiveRating)
+                    ? "fill-amber-400 text-amber-400"
+                    : "fill-stone-200 text-stone-200"
                 )}
               />
             ))}
           </div>
-          <p className="text-sm text-base-content/50">{reviewCount} reviews</p>
+          <p className="text-xs text-stone-500 font-light">{effectiveCount} verified reviews</p>
 
           {/* AI Summary button */}
           <button
+            type="button"
             onClick={() => {
-              if (aiSummary) { setAiSummary(null); return; }
+              if (aiSummary) {
+                setAiSummary(null);
+                return;
+              }
               generateSummary();
             }}
-            disabled={summaryLoading}
+            disabled={summaryLoading || reviews.length === 0}
             className={cn(
-              "btn btn-sm mt-3 gap-1.5 transition-all",
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold mt-3 transition-all",
               aiSummary
-                ? "btn-ghost border border-violet-400/40 text-violet-500"
-                : "bg-violet-500/10 text-violet-600 border border-violet-400/30 hover:bg-violet-500/20"
+                ? "bg-stone-100 text-stone-700 border border-stone-300"
+                : "bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100"
             )}
           >
             {summaryLoading ? (
-              <span className="loading loading-spinner loading-xs" />
+              <span className="w-3.5 h-3.5 border-2 border-amber-900/40 border-t-amber-900 rounded-full animate-spin" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-800" />
             )}
-            {summaryLoading ? "Analyzing…" : aiSummary ? "Hide Summary" : "AI Summary"}
+            <span>{summaryLoading ? "Analyzing…" : aiSummary ? "Hide Summary" : "AI Review Insights"}</span>
           </button>
         </div>
 
         {/* Distribution bars */}
         <div className="flex-1 w-full space-y-1.5">
           {dist.map(({ star, count }) => (
-            <RatingBar key={star} star={star} count={count} total={reviewCount} />
+            <RatingBar key={star} star={star} count={count} total={effectiveCount} />
           ))}
         </div>
       </div>
@@ -190,47 +220,50 @@ export default function ReviewSection({ productId, rating, reviewCount }: Props)
         <AISummaryCard summary={aiSummary} onClose={() => setAiSummary(null)} />
       )}
 
-      {/* Add review */}
+      {/* Add review form */}
       {user && !alreadyReviewed && (
-        <div className="card bg-base-200/50 border border-base-300 p-5 space-y-4">
-          <h3 className="font-semibold text-base-content">Write a Review</h3>
+        <div className="rounded-2xl bg-white border border-stone-200 p-6 space-y-4 shadow-xs">
+          <h3 className="font-semibold text-sm text-stone-900">Share Your Experience</h3>
           <StarPicker value={newRating} onChange={setNewRating} />
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Share your experience with this product…"
+            placeholder="Share your thoughts on the fabric quality, sizing accuracy, and drape…"
             rows={3}
-            className="textarea textarea-bordered w-full resize-none"
+            className="w-full rounded-xl border border-stone-300 p-3 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/50 resize-none"
           />
           <button
+            type="button"
             onClick={() => {
               if (!newRating) return toast.error("Please select a rating");
               if (!comment.trim()) return toast.error("Please write a comment");
               addReview();
             }}
             disabled={isPending}
-            className="btn btn-primary btn-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 transition-colors"
           >
-            {isPending && <span className="loading loading-spinner loading-xs" />}
-            Submit Review
+            {isPending && (
+              <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            )}
+            <span>Submit Review</span>
           </button>
         </div>
       )}
 
       {alreadyReviewed && (
-        <div className="alert alert-success text-sm">
-          You&apos;ve already reviewed this product.
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+          Thank you! You have already shared a review for this piece.
         </div>
       )}
 
       {!user && (
-        <div className="alert bg-base-200 border border-base-300 text-sm">
+        <div className="p-4 rounded-xl bg-stone-100 border border-stone-200 text-xs text-stone-600">
           <span>
             Please{" "}
-            <a href="/login" className="text-primary font-semibold hover:underline">
+            <a href="/login" className="text-stone-900 font-bold underline">
               sign in
             </a>{" "}
-            to leave a review.
+            to share your review for this garment.
           </span>
         </div>
       )}
@@ -239,69 +272,59 @@ export default function ReviewSection({ productId, rating, reviewCount }: Props)
       {isLoading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse space-y-2">
+            <div key={i} className="animate-pulse space-y-2 p-4 bg-white rounded-xl border border-stone-200">
               <div className="flex gap-3 items-center">
-                <div className="w-9 h-9 rounded-full bg-base-300" />
+                <div className="w-8 h-8 rounded-full bg-stone-200" />
                 <div className="space-y-1 flex-1">
-                  <div className="h-3 w-24 bg-base-300 rounded" />
-                  <div className="h-3 w-16 bg-base-300 rounded" />
+                  <div className="h-3 w-24 bg-stone-200 rounded" />
+                  <div className="h-3 w-16 bg-stone-200 rounded" />
                 </div>
               </div>
-              <div className="h-3 w-full bg-base-300 rounded" />
-              <div className="h-3 w-3/4 bg-base-300 rounded" />
+              <div className="h-3 w-full bg-stone-200 rounded mt-2" />
             </div>
           ))}
         </div>
       ) : reviews.length === 0 ? (
-        <p className="text-base-content/50 text-sm">No reviews yet. Be the first!</p>
+        <p className="text-stone-400 text-xs italic py-4">
+          No reviews yet. Be the first to share your experience with this garment.
+        </p>
       ) : (
-        <div className="space-y-5 divide-y divide-base-200">
-          {reviews.map((review) => {
-            const reviewer =
-              typeof review.userId === "object" ? (review.userId as any) : null;
+        <div className="space-y-3">
+          {reviews.map((r) => {
+            const author = typeof r.userId === "object" ? r.userId : null;
             return (
-              <div key={review._id} className="pt-5 first:pt-0 space-y-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    {reviewer?.avatar ? (
-                      <img
-                        src={reviewer.avatar}
-                        alt={reviewer.name}
-                        className="w-9 h-9 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserCircle2 className="w-9 h-9 text-base-content/30" />
-                    )}
+              <div key={r._id} className="p-5 rounded-xl bg-white border border-stone-200 space-y-2 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-500">
+                      <UserCircle2 className="w-5 h-5" />
+                    </div>
                     <div>
-                      <p className="font-semibold text-sm text-base-content">
-                        {reviewer?.name ?? "Anonymous"}
+                      <p className="font-semibold text-xs text-stone-900">
+                        {author?.name || "Verified Customer"}
                       </p>
-                      <p className="text-xs text-base-content/40">
-                        {new Date(review.createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
+                      <p className="text-[10px] text-stone-400">
+                        {new Date(r.createdAt).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
+                          year: "numeric",
                         })}
                       </p>
                     </div>
                   </div>
-                  <div className="flex shrink-0">
+                  <div className="flex items-center gap-0.5">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star
                         key={s}
                         className={cn(
                           "w-3.5 h-3.5",
-                          s <= review.rating
-                            ? "fill-secondary text-secondary"
-                            : "fill-base-300 text-base-300"
+                          s <= r.rating ? "fill-amber-400 text-amber-400" : "fill-stone-200 text-stone-200"
                         )}
                       />
                     ))}
                   </div>
                 </div>
-                <p className="text-sm text-base-content/80 leading-relaxed">
-                  {review.comment}
-                </p>
+                <p className="text-xs text-stone-600 leading-relaxed pt-1">{r.comment}</p>
               </div>
             );
           })}

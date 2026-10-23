@@ -16,14 +16,17 @@ import { useAuth } from "./AuthContext";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface CartItem {
-  _id: string;       // subdoc _id (auth) or productId (guest)
+  _id: string;       // subdoc _id (auth) or compound key (guest)
   productId: string;
   title: string;
   image: string;
-  price: number;     // final price after discount
+  price: number;     // final price after discount or override
   stock: number;
   quantity: number;
   brand?: string;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 interface CartContextValue {
@@ -34,7 +37,7 @@ interface CartContextValue {
   isSyncing: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (product: Product, qty?: number) => Promise<void>;
+  addItem: (product: Product, qty?: number, variant?: { size?: string; color?: string; sku?: string; priceOverride?: number; stock?: number }) => Promise<void>;
   updateItem: (itemId: string, qty: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => void;
@@ -69,9 +72,12 @@ function normalizeAuthItems(raw: any[]): CartItem[] {
         productId: p._id ?? p,
         title: p.title ?? "",
         image: p.images?.[0] ?? "",
-        price: discountedPrice(p.price ?? i.price, p.discount ?? 0),
-        stock: p.stock ?? 99,
+        price: i.price ?? discountedPrice(p.price ?? 0, p.discount ?? 0),
+        stock: i.variantStock ?? p.stock ?? 99,
         brand: p.brand,
+        size: i.size,
+        color: i.color,
+        sku: i.sku,
         quantity: i.quantity,
       };
     });
@@ -135,7 +141,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         await Promise.all(
           guest.map((item) =>
-            api.post("/cart", { productId: item.productId, quantity: item.quantity })
+            api.post("/cart", {
+              productId: item.productId,
+              quantity: item.quantity,
+              size: item.size,
+              color: item.color,
+              sku: item.sku,
+            })
           )
         );
         localStorage.removeItem(GUEST_KEY);
@@ -152,33 +164,54 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // ── Add item ────────────────────────────────────────────────────────────────
   const addItem = useCallback(
-    async (product: Product, qty = 1) => {
-      const finalPrice = discountedPrice(product.price, product.discount ?? 0);
+    async (
+      product: Product,
+      qty = 1,
+      variant?: { size?: string; color?: string; sku?: string; priceOverride?: number; stock?: number }
+    ) => {
+      const basePrice = variant?.priceOverride ?? product.price;
+      const finalPrice = discountedPrice(basePrice, product.discount ?? 0);
+      const effectiveStock = variant?.stock ?? product.stock;
 
       if (user) {
-        await api.post("/cart", { productId: product._id, quantity: qty });
+        await api.post("/cart", {
+          productId: product._id,
+          quantity: qty,
+          size: variant?.size,
+          color: variant?.color,
+          sku: variant?.sku,
+        });
         await fetchAuthCart();
       } else {
         setItems((prev) => {
-          const existing = prev.find((i) => i.productId === product._id);
+          const itemKey = `${product._id}-${variant?.size || ""}-${variant?.color || ""}`;
+          const existing = prev.find(
+            (i) =>
+              i.productId === product._id &&
+              (i.size || "") === (variant?.size || "") &&
+              (i.color || "") === (variant?.color || "")
+          );
           let next: CartItem[];
           if (existing) {
             next = prev.map((i) =>
-              i.productId === product._id
-                ? { ...i, quantity: Math.min(i.quantity + qty, product.stock) }
+              i._id === existing._id
+                ? { ...i, quantity: Math.min(i.quantity + qty, effectiveStock) }
                 : i
             );
           } else {
             next = [
               ...prev,
               {
-                _id: product._id,
+                _id: itemKey,
                 productId: product._id,
                 title: product.title,
                 image: product.images?.[0] ?? "",
                 price: finalPrice,
-                stock: product.stock,
+                stock: effectiveStock,
                 brand: product.brand,
+                size: variant?.size,
+                color: variant?.color,
+                sku: variant?.sku,
                 quantity: qty,
               },
             ];
