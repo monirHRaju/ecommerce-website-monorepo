@@ -10,6 +10,9 @@ import {
   Plus,
   ShoppingBag,
   Trash2,
+  ArrowRight,
+  ShieldCheck,
+  Truck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,9 +25,6 @@ export default function CartPage() {
     useCart();
   const router = useRouter();
 
-  const shipping = totalPrice >= 50 ? 0 : 5.99;
-  const grandTotal = totalPrice + shipping;
-
   const handleProceed = () => {
     if (!user) {
       router.push("/login?redirect=/checkout");
@@ -35,101 +35,132 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-        <div className="flex flex-col items-center justify-center gap-5 text-center">
-          <div className="w-24 h-24 rounded-full bg-base-200 flex items-center justify-center">
-            <ShoppingBag className="w-11 h-11 text-base-content/25" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-base-content">
-              Your cart is empty
-            </h1>
-            <p className="text-base-content/50 mt-2">
-              Looks like you haven&apos;t added anything yet.
-            </p>
-          </div>
-          <Link href="/products" className="btn btn-primary">
-            Start Shopping
-          </Link>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6 px-4 text-center">
+        <div className="w-20 h-20 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center">
+          <ShoppingBag className="w-9 h-9 text-stone-400" />
         </div>
+        <div>
+          <h1 className="font-serif text-3xl font-bold text-stone-900">
+            Your shopping bag is empty
+          </h1>
+          <p className="text-stone-500 text-sm mt-2 max-w-sm font-light">
+            Looks like you haven&apos;t added any artisanal garments or contemporary silhouettes yet.
+          </p>
+        </div>
+        <Link
+          href="/products"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 transition-colors shadow-sm"
+        >
+          <span>Explore Collections</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-base-content/50">
-        <Link href="/" className="hover:text-primary transition-colors">
-          Home
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-base-content">Cart</span>
-      </nav>
+    <div className="min-h-screen bg-stone-50/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-xs text-stone-400">
+          <Link href="/" className="hover:text-stone-700 transition-colors">
+            Home
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5" />
+          <span className="text-stone-700">Shopping Bag</span>
+        </nav>
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-base-content">
-          Shopping Cart
-          <span className="ml-3 text-base font-normal text-base-content/50">
-            ({totalItems} {totalItems === 1 ? "item" : "items"})
-          </span>
-        </h1>
-        {isSyncing && (
-          <span className="text-sm text-base-content/50 flex items-center gap-2">
-            <span className="loading loading-spinner loading-xs" />
-            Syncing cart…
-          </span>
-        )}
-      </div>
+        {/* Title */}
+        <div className="flex items-center justify-between">
+          <h1 className="font-serif text-3xl font-bold text-stone-900">
+            Shopping Bag
+            <span className="ml-3 text-sm font-normal text-stone-500 font-sans">
+              ({totalItems} {totalItems === 1 ? "garment" : "garments"})
+            </span>
+          </h1>
+          {isSyncing && (
+            <span className="text-xs text-stone-500 flex items-center gap-2">
+              <span className="w-3 h-3 border-2 border-stone-400 border-t-transparent rounded-full animate-spin" />
+              Syncing bag…
+            </span>
+          )}
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
-        {/* Cart Items */}
-        <div className="space-y-3">
-          {items.map((item) => (
-            <div
-              key={item._id}
-              className="card bg-base-100 border border-base-200 shadow-sm p-4"
-            >
-              <div className="flex gap-4">
-                {/* Image */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
+          {/* Garments List */}
+          <div className="space-y-4">
+            {items.map((item) => (
+              <div
+                key={item._id}
+                className="bg-white border border-stone-200/80 rounded-xl p-5 shadow-xs flex gap-5"
+              >
+                {/* Media (3:4 portrait) */}
                 <Link href={`/products/${item.productId}`} className="shrink-0">
-                  <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-base-200 border border-base-200">
+                  <div className="relative w-20 sm:w-24 aspect-[3/4] rounded-lg overflow-hidden bg-stone-100 border border-stone-200/80">
                     <Image
                       src={
                         item.image ||
-                        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80"
+                        "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=300&q=80"
                       }
                       alt={item.title}
                       fill
-                      className="object-cover"
+                      className="object-cover object-top"
                       sizes="96px"
                       unoptimized
                     />
                   </div>
                 </Link>
 
-                {/* Details */}
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  {item.brand && (
-                    <p className="text-xs text-base-content/40 uppercase tracking-wider font-medium">
-                      {item.brand}
-                    </p>
-                  )}
-                  <Link
-                    href={`/products/${item.productId}`}
-                    className="font-semibold text-sm text-base-content line-clamp-2 hover:text-primary transition-colors"
-                  >
-                    {item.title}
-                  </Link>
-                  <p className="text-base font-bold text-primary">
-                    {formatPrice(item.price)}
-                  </p>
-
-                  {/* Actions row */}
-                  <div className="flex items-center justify-between pt-1 flex-wrap gap-3">
-                    {/* Qty Stepper */}
-                    <div className="flex items-center border border-base-300 rounded-lg overflow-hidden">
+                {/* Garment Info */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        href={`/products/${item.productId}`}
+                        className="font-medium text-sm sm:text-base text-stone-900 hover:text-amber-800 transition-colors line-clamp-2"
+                      >
+                        {item.title}
+                      </Link>
                       <button
+                        type="button"
+                        onClick={() =>
+                          removeItem(item._id).catch(() =>
+                            toast.error("Failed to remove item")
+                          )
+                        }
+                        aria-label="Remove item"
+                        className="text-stone-400 hover:text-rose-600 p-1 transition-colors shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Variant Tags */}
+                    {(item.size || item.color) && (
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-stone-500">
+                        {item.size && (
+                          <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 font-medium">
+                            Size: {item.size}
+                          </span>
+                        )}
+                        {item.color && (
+                          <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 font-medium">
+                            Color: {item.color}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price & Quantity Stepper */}
+                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-stone-100">
+                    <span className="font-bold text-stone-900 text-base sm:text-lg">
+                      {formatPrice(item.price * item.quantity)}
+                    </span>
+
+                    <div className="inline-flex items-center border border-stone-300 rounded-lg bg-stone-50 overflow-hidden">
+                      <button
+                        type="button"
                         onClick={() => {
                           if (item.quantity <= 1) {
                             removeItem(item._id).catch(() =>
@@ -137,128 +168,90 @@ export default function CartPage() {
                             );
                           } else {
                             updateItem(item._id, item.quantity - 1).catch(() =>
-                              toast.error("Failed to update")
+                              toast.error("Failed to update quantity")
                             );
                           }
                         }}
-                        className="btn btn-ghost btn-sm btn-square rounded-none"
+                        className="w-8 h-8 flex items-center justify-center text-stone-600 hover:bg-stone-200 transition-colors"
                       >
                         {item.quantity <= 1 ? (
-                          <Trash2 className="w-3.5 h-3.5 text-error" />
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
                         ) : (
                           <Minus className="w-3.5 h-3.5" />
                         )}
                       </button>
-                      <span className="w-10 text-center text-sm font-bold">
+                      <span className="w-8 text-center text-xs font-semibold text-stone-900 select-none">
                         {item.quantity}
                       </span>
                       <button
+                        type="button"
                         onClick={() => {
                           if (item.quantity >= item.stock) {
-                            toast.error("Not enough stock");
+                            toast.error("Not enough units in stock");
                             return;
                           }
                           updateItem(item._id, item.quantity + 1).catch(() =>
-                            toast.error("Failed to update")
+                            toast.error("Failed to update quantity")
                           );
                         }}
                         disabled={item.quantity >= item.stock}
-                        className="btn btn-ghost btn-sm btn-square rounded-none disabled:opacity-40"
+                        className="w-8 h-8 flex items-center justify-center text-stone-600 hover:bg-stone-200 disabled:opacity-40 transition-colors"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Subtotal + Remove */}
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-semibold text-base-content">
-                        {formatPrice(item.price * item.quantity)}
-                      </span>
-                      <button
-                        onClick={() =>
-                          removeItem(item._id).catch(() =>
-                            toast.error("Failed to remove item")
-                          )
-                        }
-                        className="btn btn-ghost btn-sm text-error hover:bg-error/10 gap-1.5"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Remove</span>
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {/* Continue Shopping */}
-          <Link
-            href="/products"
-            className="btn btn-ghost btn-sm mt-2 gap-2"
-          >
-            ← Continue Shopping
-          </Link>
-        </div>
-
-        {/* Order Summary */}
-        <div className="card bg-base-100 border border-base-300 shadow-sm p-5 space-y-4 sticky top-24">
-          <h2 className="font-bold text-base-content text-lg">Order Summary</h2>
-
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-base-content/60">
-                Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})
-              </span>
-              <span>{formatPrice(totalPrice)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-base-content/60">Shipping</span>
-              <span className={shipping === 0 ? "text-success font-medium" : ""}>
-                {shipping === 0 ? "Free" : formatPrice(shipping)}
-              </span>
-            </div>
-            {shipping > 0 && (
-              <p className="text-xs text-base-content/40">
-                Add {formatPrice(50 - totalPrice)} more for free shipping
-              </p>
-            )}
+            ))}
           </div>
 
-          <div className="divider my-0" />
+          {/* Order Summary Sidebar */}
+          <div className="bg-white border border-stone-200/80 rounded-xl p-6 space-y-5 shadow-xs sticky top-28">
+            <h2 className="font-serif font-bold text-lg text-stone-900">
+              Order Summary
+            </h2>
 
-          <div className="flex justify-between font-bold text-base">
-            <span>Estimated Total</span>
-            <span className="text-primary text-lg">{formatPrice(grandTotal)}</span>
-          </div>
-
-          <button
-            onClick={handleProceed}
-            className="btn btn-primary w-full gap-2"
-          >
-            <Lock className="w-4 h-4" />
-            {user ? "Proceed to Checkout" : "Sign In to Checkout"}
-          </button>
-
-          {!user && (
-            <p className="text-xs text-center text-base-content/40">
-              You&apos;ll be asked to sign in before payment
-            </p>
-          )}
-
-          {/* Trust badges */}
-          <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs text-base-content/50">
-            <div className="space-y-1">
-              <div className="text-lg">🔒</div>
-              <p>Secure</p>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between text-stone-600">
+                <span>Items Subtotal</span>
+                <span className="font-semibold text-stone-900">
+                  {formatPrice(totalPrice)}
+                </span>
+              </div>
+              <div className="flex justify-between text-stone-600">
+                <span>Delivery</span>
+                <span className="text-xs text-stone-500 italic">
+                  Calculated at checkout
+                </span>
+              </div>
             </div>
-            <div className="space-y-1">
-              <div className="text-lg">🚚</div>
-              <p>Fast Delivery</p>
+
+            <div className="pt-3 border-t border-stone-200 flex justify-between items-baseline">
+              <span className="font-medium text-stone-900">Estimated Total</span>
+              <span className="font-serif font-bold text-2xl text-stone-900">
+                {formatPrice(totalPrice)}
+              </span>
             </div>
-            <div className="space-y-1">
-              <div className="text-lg">↩️</div>
-              <p>Easy Returns</p>
+
+            <button
+              type="button"
+              onClick={handleProceed}
+              className="w-full py-3.5 rounded-lg bg-stone-900 text-white font-semibold text-sm hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Proceed to Checkout</span>
+            </button>
+
+            <div className="pt-4 border-t border-stone-100 space-y-2 text-xs text-stone-500">
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4 text-stone-700 shrink-0" />
+                <span>Inside Dhaka (৳70) • Nationwide (৳130)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-stone-700 shrink-0" />
+                <span>Cash on Delivery & Instant Mobile Banking</span>
+              </div>
             </div>
           </div>
         </div>

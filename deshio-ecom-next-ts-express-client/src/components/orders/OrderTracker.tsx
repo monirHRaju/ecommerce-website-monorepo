@@ -24,7 +24,15 @@ export interface TrackingData {
   couponDiscount?: number;
   orderNote?: string;
   deliveryZone?: { name: string; estimatedDays: string } | null;
-  items: { title: string; quantity: number; image?: string; price: number }[];
+  items: {
+    title: string;
+    quantity: number;
+    image?: string;
+    price: number;
+    size?: string;
+    color?: string;
+    sku?: string;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -33,8 +41,8 @@ export interface TrackingData {
 
 const STEPS = [
   { key: "pending",    label: "Order Placed", icon: Clock,        description: "Your order has been received" },
-  { key: "processing", label: "Processing",   icon: Package,      description: "We're preparing your items" },
-  { key: "shipped",    label: "Shipped",       icon: Truck,        description: "Your order is on the way" },
+  { key: "processing", label: "Processing",   icon: Package,      description: "We're preparing your garment" },
+  { key: "shipped",    label: "Shipped",       icon: Truck,        description: "Package is on the way" },
   { key: "delivered",  label: "Delivered",     icon: PackageCheck, description: "Package delivered successfully" },
 ];
 
@@ -53,16 +61,43 @@ function buildTimeline(status: string, createdAt: string, updatedAt: string) {
 
   const fmt = (d: string) =>
     new Date(d).toLocaleString("en-US", {
-      day: "2-digit", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
-  if (idx >= 0) events.push({ label: "Order Placed", sub: "Your order was received and confirmed.", date: fmt(createdAt), active: true });
-  if (idx >= 1) events.push({ label: "Processing", sub: "Seller is preparing your package.", date: fmt(updatedAt), active: true });
-  if (idx >= 2) events.push({ label: "Shipped", sub: "Package handed to delivery partner.", date: fmt(updatedAt), active: true });
-  if (idx >= 3) events.push({ label: "Delivered", sub: "Package delivered successfully.", date: fmt(updatedAt), active: true });
+  if (idx >= 0)
+    events.push({
+      label: "Order Placed",
+      sub: "Your order was received and confirmed.",
+      date: fmt(createdAt),
+      active: true,
+    });
+  if (idx >= 1)
+    events.push({
+      label: "Processing",
+      sub: "Atelier is packing and quality inspecting your garments.",
+      date: fmt(updatedAt),
+      active: true,
+    });
+  if (idx >= 2)
+    events.push({
+      label: "Shipped",
+      sub: "Handed over to courier partner for express delivery.",
+      date: fmt(updatedAt),
+      active: true,
+    });
+  if (idx >= 3)
+    events.push({
+      label: "Delivered",
+      sub: "Package delivered to your doorstep.",
+      date: fmt(updatedAt),
+      active: true,
+    });
 
-  return events.reverse(); // newest first
+  return events.reverse();
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -72,89 +107,104 @@ export default function OrderTracker({ data }: { data: TrackingData }) {
   const currentStep = STATUS_ORDER[data.orderStatus] ?? 0;
   const timeline = buildTimeline(data.orderStatus, data.createdAt, data.updatedAt);
 
-  const paymentBadge = data.paymentStatus === "paid"
-    ? "badge-success"
-    : data.paymentStatus === "failed"
-    ? "badge-error"
-    : "badge-warning";
-
   return (
     <div className="space-y-6">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="card bg-base-100 border border-base-300 shadow-sm p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* ── Header Card ─────────────────────────────────────────────────── */}
+      <div className="rounded-2xl bg-white border border-stone-200/90 shadow-xs p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs text-base-content/50 uppercase tracking-widest mb-1">Order Number</p>
-            <p className="font-black text-lg font-mono text-primary">{data.orderNumber}</p>
-            <p className="text-xs text-base-content/40 mt-1">
-              Placed on {new Date(data.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+            <p className="text-[11px] text-stone-500 uppercase tracking-widest mb-1">
+              Order Reference
+            </p>
+            <p className="font-bold text-lg font-mono text-stone-900">
+              {data.orderNumber}
+            </p>
+            <p className="text-xs text-stone-400 mt-1">
+              Placed on{" "}
+              {new Date(data.createdAt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
             {isCancelled ? (
-              <span className="badge badge-error gap-1">
-                <XCircle className="w-3 h-3" /> Cancelled
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                <XCircle className="w-3.5 h-3.5" /> Cancelled
               </span>
             ) : (
-              <span className={`badge badge-sm capitalize ${
-                data.orderStatus === "delivered" ? "badge-success" :
-                data.orderStatus === "shipped"   ? "badge-primary" :
-                data.orderStatus === "processing"? "badge-info" : "badge-warning"
-              }`}>
+              <span
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                  data.orderStatus === "delivered"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-amber-50 text-amber-900 border border-amber-200"
+                }`}
+              >
                 {data.orderStatus}
               </span>
             )}
-            <span className={`badge badge-sm ${paymentBadge}`}>
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium capitalize ${
+                data.paymentStatus === "paid"
+                  ? "bg-emerald-50 text-emerald-700"
+                  : data.paymentStatus === "failed"
+                  ? "bg-rose-50 text-rose-700"
+                  : "bg-amber-50 text-amber-800"
+              }`}
+            >
               Payment: {data.paymentStatus}
             </span>
           </div>
         </div>
 
+        {/* Delivery zone info */}
         {data.deliveryZone && (
-          <p className="mt-3 text-sm text-base-content/60 flex items-center gap-1.5">
-            <Truck className="w-3.5 h-3.5 shrink-0 text-primary" />
-            {data.deliveryZone.name} · Est. {data.deliveryZone.estimatedDays}
-          </p>
+          <div className="mt-4 pt-4 border-t border-stone-100 flex items-center justify-between text-xs text-stone-600">
+            <span>
+              Delivery Option:{" "}
+              <strong className="text-stone-900">{data.deliveryZone.name}</strong>
+            </span>
+            <span>Est. Arrival: {data.deliveryZone.estimatedDays}</span>
+          </div>
         )}
       </div>
 
-      {/* ── Progress Stepper ────────────────────────────────────────────── */}
+      {/* ── Progress Stepper ─────────────────────────────────────────────── */}
       {!isCancelled && (
-        <div className="card bg-base-100 border border-base-300 shadow-sm p-5 sm:p-6">
-          <div className="flex items-start justify-between relative">
-            {/* Connecting line */}
-            <div className="absolute top-5 left-0 right-0 h-0.5 bg-base-300 z-0 mx-[10%]" />
-
-            {STEPS.map((step, i) => {
-              const done = i <= currentStep;
-              const active = i === currentStep;
-              const Icon = step.icon;
-
+        <div className="rounded-2xl bg-white border border-stone-200/90 shadow-xs p-6">
+          <h3 className="font-serif font-bold text-sm text-stone-900 mb-6">
+            Dispatch Status
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {STEPS.map((s, idx) => {
+              const Icon = s.icon;
+              const isDone = currentStep >= idx;
+              const isCurrent = currentStep === idx;
               return (
-                <div key={step.key} className="flex flex-col items-center gap-2 z-10 flex-1">
+                <div
+                  key={s.key}
+                  className={`flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
+                    isCurrent
+                      ? "border-stone-900 bg-stone-50 shadow-xs"
+                      : isDone
+                      ? "border-emerald-200 bg-emerald-50/40"
+                      : "border-stone-200 opacity-50"
+                  }`}
+                >
                   <div
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                      done && !active
-                        ? "bg-primary border-primary text-primary-content"
-                        : active
-                        ? "bg-secondary border-secondary text-secondary-content ring-4 ring-secondary/20"
-                        : "bg-base-100 border-base-300 text-base-content/30"
-                    )}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 text-xs ${
+                      isDone
+                        ? "bg-stone-900 text-white"
+                        : "bg-stone-200 text-stone-500"
+                    }`}
                   >
-                    {done && !active
-                      ? <CheckCircle2 className="w-5 h-5" />
-                      : <Icon className="w-5 h-5" />
-                    }
+                    <Icon className="w-4 h-4" />
                   </div>
-                  <div className="text-center">
-                    <p className={cn("text-xs font-semibold", done ? "text-base-content" : "text-base-content/40")}>
-                      {step.label}
-                    </p>
-                    <p className="text-[10px] text-base-content/40 hidden sm:block mt-0.5 max-w-[80px]">
-                      {step.description}
-                    </p>
-                  </div>
+                  <p className="font-semibold text-xs text-stone-900">{s.label}</p>
+                  <p className="text-[10px] text-stone-500 mt-0.5 leading-tight">
+                    {s.description}
+                  </p>
                 </div>
               );
             })}
@@ -162,88 +212,80 @@ export default function OrderTracker({ data }: { data: TrackingData }) {
         </div>
       )}
 
-      {/* ── Timeline ───────────────────────────────────────────────────── */}
-      {timeline.length > 0 && (
-        <div className="card bg-base-100 border border-base-300 shadow-sm p-5">
-          <h3 className="font-bold text-sm mb-4 text-base-content">Tracking Timeline</h3>
-          <ul className="space-y-0">
-            {timeline.map((event, i) => (
-              <li key={i} className="flex gap-4">
-                {/* Dot + line */}
-                <div className="flex flex-col items-center">
-                  <div className={cn(
-                    "w-3 h-3 rounded-full shrink-0 mt-1",
-                    i === 0 ? "bg-secondary ring-4 ring-secondary/20" : "bg-base-300"
-                  )} />
-                  {i < timeline.length - 1 && (
-                    <div className="w-0.5 flex-1 bg-base-200 my-1 min-h-[24px]" />
-                  )}
-                </div>
-                {/* Content */}
-                <div className="pb-4">
-                  <p className={cn("text-sm font-semibold", i === 0 ? "text-base-content" : "text-base-content/60")}>
-                    {event.label}
-                  </p>
-                  <p className="text-xs text-base-content/50 mt-0.5">{event.sub}</p>
-                  <p className="text-xs text-base-content/40 mt-1">{event.date}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {/* ── Order Items ─────────────────────────────────────────────────── */}
-      <div className="card bg-base-100 border border-base-300 shadow-sm p-5">
-        <h3 className="font-bold text-sm mb-4">Items Ordered</h3>
-        <ul className="divide-y divide-base-200">
+      <div className="rounded-2xl bg-white border border-stone-200/90 shadow-xs p-6">
+        <h3 className="font-serif font-bold text-sm text-stone-900 mb-4">
+          Garments Ordered
+        </h3>
+        <ul className="divide-y divide-stone-100">
           {data.items.map((item, i) => (
-            <li key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-              <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-base-200 border border-base-200 shrink-0">
+            <li
+              key={i}
+              className="flex items-center gap-3.5 py-3.5 first:pt-0 last:pb-0"
+            >
+              <div className="relative w-12 h-16 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/80 shrink-0">
                 <Image
-                  src={item.image || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&q=60"}
+                  src={
+                    item.image ||
+                    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=120&q=80"
+                  }
                   alt={item.title}
                   fill
-                  className="object-cover"
+                  className="object-cover object-top"
                   sizes="48px"
                   unoptimized
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium line-clamp-1">{item.title}</p>
-                <p className="text-xs text-base-content/50 mt-0.5">Qty: {item.quantity}</p>
+                <p className="text-xs sm:text-sm font-medium text-stone-900 line-clamp-1">
+                  {item.title}
+                </p>
+                {(item.size || item.color) && (
+                  <p className="text-[11px] text-stone-500 mt-0.5">
+                    {item.size && `Size: ${item.size}`}
+                    {item.size && item.color && " • "}
+                    {item.color && item.color}
+                  </p>
+                )}
+                <p className="text-xs text-stone-400 mt-0.5">Qty: {item.quantity}</p>
               </div>
-              <p className="text-sm font-semibold shrink-0">{formatPrice(item.price * item.quantity)}</p>
+              <p className="text-xs sm:text-sm font-bold text-stone-900 shrink-0">
+                {formatPrice(item.price * item.quantity)}
+              </p>
             </li>
           ))}
         </ul>
 
-        {/* Price summary */}
-        <div className="border-t border-base-200 mt-4 pt-4 space-y-1.5 text-sm">
+        {/* Summary Breakdown */}
+        <div className="border-t border-stone-100 mt-4 pt-4 space-y-2 text-xs sm:text-sm">
           {(data.deliveryCharge ?? 0) > 0 && (
-            <div className="flex justify-between text-base-content/60">
-              <span>Delivery</span>
-              <span>Tk. {data.deliveryCharge}</span>
+            <div className="flex justify-between text-stone-600">
+              <span>Delivery Charge</span>
+              <span className="font-medium text-stone-900">
+                {formatPrice(data.deliveryCharge!)}
+              </span>
             </div>
           )}
           {(data.couponDiscount ?? 0) > 0 && (
-            <div className="flex justify-between text-success">
+            <div className="flex justify-between text-emerald-700">
               <span>Coupon Discount</span>
               <span>−{formatPrice(data.couponDiscount!)}</span>
             </div>
           )}
-          <div className="flex justify-between font-bold text-base pt-1">
+          <div className="flex justify-between font-bold text-sm sm:text-base pt-1">
             <span>Total</span>
-            <span className="text-primary">{formatPrice(data.totalAmount)}</span>
+            <span className="font-serif font-bold text-lg text-stone-900">
+              {formatPrice(data.totalAmount)}
+            </span>
           </div>
-          <p className="text-xs text-base-content/40 capitalize">
-            Payment: {data.paymentMethod.replace(/_/g, " ")} · {data.paymentStatus}
+          <p className="text-[11px] text-stone-400 capitalize pt-1">
+            Payment: {data.paymentMethod.replace(/_/g, " ")} • {data.paymentStatus}
           </p>
         </div>
 
         {data.orderNote && (
-          <div className="mt-4 p-3 rounded-xl bg-base-200 text-sm text-base-content/60">
-            <span className="font-medium text-base-content">Note: </span>
+          <div className="mt-4 p-3 rounded-xl bg-stone-50 text-xs text-stone-600 border border-stone-200">
+            <span className="font-medium text-stone-900">Customer Note: </span>
             {data.orderNote}
           </div>
         )}
