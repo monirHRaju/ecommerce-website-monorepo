@@ -1,250 +1,244 @@
 import type { Metadata } from "next";
-import { ArrowRight, BookOpen, Clock, Rss, User } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight, BookOpen, Clock, User } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Blog",
+  title: "The Journal — Style Guides, Textile Stories & Care Notes | Deshio",
   description:
-    "Tech insights, buying guides, and product news from the Deshio team.",
+    "Explore the Deshio Editorial Journal for seasonal lookbooks, Jamdani weaving stories, natural fabric care guides, and festive wardrobe curation.",
   openGraph: {
-    title: "Deshio Blog — Tech Insights & Buying Guides",
+    title: "The Deshio Journal — Fashion & Textile Stories",
     description:
-      "Stay up to date with the latest in consumer electronics, tips, and product reviews.",
+      "Curated style guides, heritage handloom spotlights, and garment care wisdom.",
+    type: "website",
   },
 };
 
 interface Article {
   slug: string;
   category: string;
-  categoryColor: string;
   title: string;
   excerpt: string;
   author: string;
   date: string;
   readTime: string;
   image: string;
+  ctaHref: string;
   featured?: boolean;
 }
 
 const articles: Article[] = [
   {
-    slug: "best-wireless-earbuds-2025",
-    category: "Buying Guide",
-    categoryColor: "badge-primary",
-    title: "The 10 Best Wireless Earbuds of 2025 — Tested & Ranked",
+    slug: "art-of-jamdani-weaving",
+    category: "Heritage Craft",
+    title: "The Living Loom: Inside Sonargaon's Centuries-Old Jamdani Tradition",
     excerpt:
-      "We spent three weeks testing 24 pairs of wireless earbuds across every price range. Here are the ones that genuinely impressed us — and the ones to skip.",
-    author: "Jordan Kim",
-    date: "March 15, 2025",
-    readTime: "9 min read",
+      "Each genuine Jamdani saree takes weeks of synchronized hand-weaving using fine muslin warp and supplementary discontinuous weft motifs. Discover how our partner weavers keep this UNESCO-recognized art thriving.",
+    author: "Nadia Rahman",
+    date: "October 12, 2026",
+    readTime: "6 min read",
     image:
-      "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&q=80",
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1000&auto=format&fit=crop&q=80",
+    ctaHref: "/gender/women",
     featured: true,
   },
   {
-    slug: "budget-laptop-guide-2025",
-    category: "Buying Guide",
-    categoryColor: "badge-primary",
-    title: "Best Budget Laptops Under ৳500 That Don't Feel Cheap",
+    slug: "festive-panjabi-styling-guide",
+    category: "Style Guide",
+    title: "How to Choose the Ideal Panjabi Silhouette for Festive Evenings",
     excerpt:
-      "You don't have to spend a fortune to get a reliable, fast laptop. These five picks deliver premium feel at half the price of the competition.",
-    author: "Priya Nair",
-    date: "March 8, 2025",
+      "From crisp bandhgala collars in textured tussar silk to breathable tone-on-tone embroidered cotton — a gentleman's guide to effortless festive dressing.",
+    author: "Tariq Ahmed",
+    date: "October 4, 2026",
+    readTime: "5 min read",
+    image:
+      "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&auto=format&fit=crop&q=80",
+    ctaHref: "/gender/men",
+  },
+  {
+    slug: "caring-for-pure-linen-and-handloom",
+    category: "Garment Care",
+    title: "5 Essential Rules for Preserving Pure Linen & Handloom Cotton",
+    excerpt:
+      "Natural fibers grow softer and more expressive with age when washed gently. Learn our atelier's cold-wash, shade-dry, and steam-pressing rituals.",
+    author: "Meher Afroz",
+    date: "September 25, 2026",
+    readTime: "4 min read",
+    image:
+      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&auto=format&fit=crop&q=80",
+    ctaHref: "/products",
+  },
+  {
+    slug: "capsule-wardrobe-tropical-climate",
+    category: "Wardrobe Edit",
+    title: "Building a 7-Piece Breathable Capsule Wardrobe for Dhaka's Climate",
+    excerpt:
+      "Beat humidity without compromising polish. See how neutral earth tones, relaxed linen shirts, and versatile co-ord sets transition seamlessly from desk to dinner.",
+    author: "Zara Chowdhury",
+    date: "September 14, 2026",
     readTime: "7 min read",
     image:
-      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&q=80",
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop&q=80",
+    ctaHref: "/products",
   },
   {
-    slug: "smart-home-setup-beginners",
-    category: "How-To",
-    categoryColor: "badge-secondary",
-    title: "How to Build a Smart Home on a Budget (Complete Starter Guide)",
+    slug: "natural-dyes-and-earthy-palettes",
+    category: "Sustainability",
+    title: "Why We Favor Earthy Pigments & Low-Impact Azo-Free Dyes",
     excerpt:
-      "Smart lighting, voice assistants, and automated thermostats don't require a six-figure renovation. Start here with our step-by-step beginner guide.",
-    author: "Marcus Lee",
-    date: "February 28, 2025",
-    readTime: "11 min read",
+      "From indigo and madder root to warm ochre and charcoal stone — how thoughtful dye chemistry protects both sensitive skin and local waterways.",
+    author: "Nadia Rahman",
+    date: "September 2, 2026",
+    readTime: "5 min read",
     image:
-      "https://images.unsplash.com/photo-1558002038-1055907df827?w=800&q=80",
+      "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&auto=format&fit=crop&q=80",
+    ctaHref: "/about",
   },
   {
-    slug: "iphone-vs-android-2025",
-    category: "Opinion",
-    categoryColor: "badge-info",
-    title: "iPhone vs Android in 2025: The Honest, Unbiased Take",
+    slug: "kids-organic-cotton-comfort",
+    category: "Family Edit",
+    title: "Soft on Young Skin: Why 100% Combed Organic Cotton Matters for Kids",
     excerpt:
-      "After daily-driving both flagships for 60 days, here's what the specs sheets won't tell you — and which one you should actually buy.",
-    author: "Alex Rivera",
-    date: "February 20, 2025",
-    readTime: "8 min read",
+      "Children's clothing should move freely and breathe effortlessly. Explore our tag-free, pre-shrunk cotton sets designed for active play.",
+    author: "Meher Afroz",
+    date: "August 19, 2026",
+    readTime: "4 min read",
     image:
-      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80",
-  },
-  {
-    slug: "mechanical-keyboard-beginners",
-    category: "Deep Dive",
-    categoryColor: "badge-warning",
-    title: "Mechanical Keyboards: Everything You Need to Know Before Buying",
-    excerpt:
-      "Linear, tactile, clicky — the switch world is overwhelming. We break down every type, the best boards at each price, and why it all matters.",
-    author: "Sofia Chen",
-    date: "February 12, 2025",
-    readTime: "13 min read",
-    image:
-      "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&q=80",
-  },
-  {
-    slug: "4k-monitor-comparison",
-    category: "Comparison",
-    categoryColor: "badge-success",
-    title: "5 Best 4K Monitors for Work and Gaming (2025 Edition)",
-    excerpt:
-      "From colour-accurate IPS panels for designers to 144 Hz VA screens for gamers — we've tested the monitors worth spending money on this year.",
-    author: "Aisha Osman",
-    date: "January 30, 2025",
-    readTime: "10 min read",
-    image:
-      "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&q=80",
+      "https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=800&auto=format&fit=crop&q=80",
+    ctaHref: "/gender/kids",
   },
 ];
 
-const featured = articles.find((a) => a.featured)!;
-const rest = articles.filter((a) => !a.featured);
-
 export default function BlogPage() {
+  const featured = articles.find((a) => a.featured)!;
+  const rest = articles.filter((a) => !a.featured);
+
   return (
-    <div className="bg-base-100">
-      {/* ── Hero ───────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 page-hero-bg" />
-        <div className="relative mx-auto max-w-3xl px-6 text-center">
-          <div className="inline-flex items-center gap-2 badge badge-primary badge-lg px-4 py-3 mb-6">
-            <Rss className="w-4 h-4" />
-            Deshio Blog
+    <div className="min-h-screen bg-stone-50/30">
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <section className="bg-white border-b border-stone-200 py-14 sm:py-20 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-semibold uppercase tracking-widest mb-4">
+            <BookOpen className="w-3.5 h-3.5" />
+            The Deshio Journal
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-base-content leading-tight mb-4">
-            Tech insights &amp;{" "}
-            <span className="text-primary">buying guides</span>
+          <h1 className="font-serif text-3xl sm:text-5xl text-stone-900 tracking-tight mb-4">
+            Notes on Craft, Style & Slow Living
           </h1>
-          <p className="text-base-content/60 text-lg max-w-xl mx-auto">
-            Honest reviews, in-depth comparisons, and practical guides to help
-            you buy smarter and use your tech better.
+          <p className="text-stone-500 text-sm sm:text-base max-w-xl mx-auto font-light leading-relaxed">
+            Stories from our weaving clusters, seasonal lookbooks, and practical
+            guides to caring for natural textiles.
           </p>
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-6 pb-24 space-y-12">
-        {/* ── Featured Article ─────────────────────────────────────── */}
-        <div>
-          <h2 className="flex items-center gap-2 text-sm font-bold text-base-content/50 uppercase tracking-widest mb-5">
-            <BookOpen className="w-4 h-4" />
-            Featured
-          </h2>
-          <Link
-            href={`/blog/${featured.slug}`}
-            className="group card bg-base-100 border border-base-200 overflow-hidden hover:shadow-xl transition-shadow lg:flex-row flex flex-col"
-          >
-            <div className="lg:w-1/2 h-56 lg:h-auto overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={featured.image}
-                alt={featured.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-            </div>
-            <div className="lg:w-1/2 p-8 flex flex-col justify-center space-y-4">
-              <span className={`badge ${featured.categoryColor} badge-sm w-fit`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-16">
+        {/* ── Featured Story ──────────────────────────────────────────── */}
+        <article className="grid lg:grid-cols-12 rounded-2xl overflow-hidden bg-white border border-stone-200 shadow-2xs">
+          <div className="lg:col-span-7 relative min-h-[280px] sm:min-h-[380px] bg-stone-100">
+            <Image
+              src={featured.image}
+              alt={featured.title}
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 58vw"
+              className="object-cover"
+            />
+            <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-stone-900/90 text-white text-[11px] font-semibold uppercase tracking-wider">
+              Featured Essay
+            </span>
+          </div>
+
+          <div className="lg:col-span-5 p-6 sm:p-10 flex flex-col justify-between">
+            <div>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-800">
                 {featured.category}
               </span>
-              <h3 className="text-2xl font-black text-base-content group-hover:text-primary transition-colors leading-tight">
+              <h2 className="font-serif text-2xl sm:text-3xl text-stone-900 mt-2 mb-4 leading-snug">
                 {featured.title}
-              </h3>
-              <p className="text-base-content/60 leading-relaxed">
+              </h2>
+              <p className="text-stone-600 text-sm leading-relaxed font-light mb-6">
                 {featured.excerpt}
               </p>
-              <div className="flex items-center gap-4 text-xs text-base-content/40 pt-1">
-                <span className="flex items-center gap-1">
-                  <User className="w-3.5 h-3.5" />
-                  {featured.author}
-                </span>
-                <span>{featured.date}</span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
-                  {featured.readTime}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-primary text-sm font-semibold mt-1">
-                Read article
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
             </div>
-          </Link>
-        </div>
 
-        {/* ── Article Grid ─────────────────────────────────────────── */}
-        <div>
-          <h2 className="flex items-center gap-2 text-sm font-bold text-base-content/50 uppercase tracking-widest mb-5">
-            <Rss className="w-4 h-4" />
-            Latest Articles
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rest.map((article) => (
+            <div className="pt-6 border-t border-stone-100 flex items-center justify-between gap-4">
+              <div className="text-xs text-stone-500 space-y-0.5">
+                <p className="font-medium text-stone-800 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-stone-400" />
+                  {featured.author}
+                </p>
+                <p className="flex items-center gap-1.5 text-stone-400">
+                  <Clock className="w-3.5 h-3.5" />
+                  {featured.date} · {featured.readTime}
+                </p>
+              </div>
+
               <Link
-                key={article.slug}
-                href={`/blog/${article.slug}`}
-                className="group card bg-base-100 border border-base-200 overflow-hidden hover:shadow-lg transition-shadow"
+                href={featured.ctaHref}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-stone-900 text-white text-xs font-semibold uppercase tracking-wider hover:bg-stone-800 transition-colors"
               >
-                <div className="h-48 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                Explore Edit
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        </article>
+
+        {/* ── Recent Stories Grid ─────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="font-serif text-2xl text-stone-900">
+              Recent Dispatches
+            </h2>
+            <span className="text-xs text-stone-400 uppercase tracking-widest">
+              {rest.length} Stories
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rest.map((article) => (
+              <article
+                key={article.slug}
+                className="rounded-2xl bg-white border border-stone-200 overflow-hidden flex flex-col hover:border-stone-300 transition-colors"
+              >
+                <div className="relative h-56 bg-stone-100">
+                  <Image
                     src={article.image}
                     alt={article.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover"
                   />
-                </div>
-                <div className="p-5 space-y-3">
-                  <span
-                    className={`badge ${article.categoryColor} badge-sm`}
-                  >
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-white/95 text-stone-800 text-[10px] font-semibold uppercase tracking-wider">
                     {article.category}
                   </span>
-                  <h3 className="font-bold text-base-content leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                </div>
+
+                <div className="p-6 flex flex-col flex-1">
+                  <h3 className="font-serif text-lg text-stone-900 leading-snug mb-2.5">
                     {article.title}
                   </h3>
-                  <p className="text-sm text-base-content/55 leading-relaxed line-clamp-3">
+                  <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed flex-1 mb-5">
                     {article.excerpt}
                   </p>
-                  <div className="flex items-center gap-3 text-xs text-base-content/40 pt-1">
-                    <span className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
-                      {article.author}
+
+                  <div className="pt-4 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+                    <span>
+                      {article.author} · {article.readTime}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {article.readTime}
-                    </span>
+                    <Link
+                      href={article.ctaHref}
+                      className="font-semibold text-stone-900 hover:text-amber-800 inline-flex items-center gap-1 transition-colors"
+                    >
+                      Shop Edit
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
                   </div>
                 </div>
-              </Link>
+              </article>
             ))}
-          </div>
-        </div>
-
-        {/* ── Newsletter CTA ───────────────────────────────────────── */}
-        <div className="card bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 p-8 text-center">
-          <h3 className="text-xl font-black text-base-content mb-2">
-            Get new articles in your inbox
-          </h3>
-          <p className="text-base-content/60 text-sm mb-5 max-w-sm mx-auto">
-            No spam — just our best tech guides, once a week.
-          </p>
-          <div className="flex gap-2 max-w-sm mx-auto">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              className="input input-bordered input-sm flex-1"
-            />
-            <button className="btn btn-primary btn-sm">Subscribe</button>
           </div>
         </div>
       </div>
