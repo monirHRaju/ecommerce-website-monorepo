@@ -264,11 +264,15 @@ export interface DashboardChartData {
 export interface ProductQueryParams {
   search?: string;
   category?: string;
+  gender?: string;
+  size?: string;
+  color?: string;
   brand?: string;
   priceMin?: number;
   priceMax?: number;
   rating?: number;
   isFeatured?: boolean;
+  inStock?: boolean;
   sort?: string;
   page?: number;
   limit?: number;
