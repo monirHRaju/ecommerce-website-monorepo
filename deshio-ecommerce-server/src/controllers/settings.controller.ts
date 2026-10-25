@@ -35,6 +35,9 @@ export const updateSeoSettings = asyncHandler(async (req: Request, res: Response
     contactEmail,
     contactPhone,
     socialLinks,
+    whatsappSupport,
+    messengerSupport,
+    showFloatingSupport,
   } = req.body;
 
   const update: Record<string, any> = {};
@@ -61,8 +64,18 @@ export const updateSeoSettings = asyncHandler(async (req: Request, res: Response
   if (indexSite !== undefined) update.indexSite = Boolean(indexSite);
   if (contactEmail !== undefined) update.contactEmail = String(contactEmail).trim();
   if (contactPhone !== undefined) update.contactPhone = String(contactPhone).trim();
+  if (whatsappSupport !== undefined) update.whatsappSupport = String(whatsappSupport).trim();
+  if (messengerSupport !== undefined) update.messengerSupport = String(messengerSupport).trim();
+  if (showFloatingSupport !== undefined) update.showFloatingSupport = Boolean(showFloatingSupport);
   if (socialLinks !== undefined && typeof socialLinks === 'object') {
     update.socialLinks = socialLinks;
+    // Also keep top-level fields synced if passed in socialLinks
+    if (socialLinks.whatsapp && whatsappSupport === undefined) {
+      update.whatsappSupport = String(socialLinks.whatsapp).trim();
+    }
+    if (socialLinks.messenger && messengerSupport === undefined) {
+      update.messengerSupport = String(socialLinks.messenger).trim();
+    }
   }
 
   let settings = await SiteSettings.findOneAndUpdate({}, update, {

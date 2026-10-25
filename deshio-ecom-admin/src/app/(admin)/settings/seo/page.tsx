@@ -36,6 +36,8 @@ export default function SeoSettingsPage() {
   const [socialInstagram, setSocialInstagram] = useState("");
   const [socialYoutube, setSocialYoutube] = useState("");
   const [socialPinterest, setSocialPinterest] = useState("");
+  const [socialWhatsapp, setSocialWhatsapp] = useState("");
+  const [socialMessenger, setSocialMessenger] = useState("");
 
   // Populate state when settings load
   useEffect(() => {
@@ -63,6 +65,12 @@ export default function SeoSettingsPage() {
       setSocialInstagram(settings.socialLinks?.instagram || "");
       setSocialYoutube(settings.socialLinks?.youtube || "");
       setSocialPinterest(settings.socialLinks?.pinterest || "");
+      setSocialWhatsapp(
+        settings.whatsappSupport || settings.socialLinks?.whatsapp || ""
+      );
+      setSocialMessenger(
+        settings.messengerSupport || settings.socialLinks?.messenger || ""
+      );
     }
   }, [settings]);
 
@@ -85,11 +93,15 @@ export default function SeoSettingsPage() {
         indexSite,
         contactEmail,
         contactPhone,
+        whatsappSupport: socialWhatsapp,
+        messengerSupport: socialMessenger,
         socialLinks: {
           facebook: socialFacebook,
           instagram: socialInstagram,
           youtube: socialYoutube,
           pinterest: socialPinterest,
+          whatsapp: socialWhatsapp,
+          messenger: socialMessenger,
         },
       };
       const res = await api.patch("/settings/seo", payload);
@@ -490,6 +502,32 @@ export default function SeoSettingsPage() {
                 value={socialPinterest}
                 onChange={(e) => setSocialPinterest(e.target.value)}
                 placeholder="https://pinterest.com/deshio"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-brand-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                WhatsApp Support Link / Number
+              </label>
+              <input
+                type="text"
+                value={socialWhatsapp}
+                onChange={(e) => setSocialWhatsapp(e.target.value)}
+                placeholder="+8801700000000 or https://wa.me/8801700000000"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-brand-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Facebook Messenger Support Link
+              </label>
+              <input
+                type="text"
+                value={socialMessenger}
+                onChange={(e) => setSocialMessenger(e.target.value)}
+                placeholder="e.g. deshio or https://m.me/deshio"
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-brand-500"
               />
             </div>

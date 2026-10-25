@@ -75,12 +75,28 @@ const siteSettingsSchema = new Schema<ISiteSettings>(
       default: '+880 1700-000000',
       trim: true,
     },
-    socialLinks: {
+      socialLinks: {
       facebook: { type: String, default: 'https://facebook.com/deshio' },
       instagram: { type: String, default: 'https://instagram.com/deshio' },
       youtube: { type: String, default: '' },
       pinterest: { type: String, default: '' },
       tiktok: { type: String, default: '' },
+      whatsapp: { type: String, default: '+880 1700-000000' },
+      messenger: { type: String, default: 'https://m.me/deshio' },
+    },
+    whatsappSupport: {
+      type: String,
+      default: '+880 1700-000000',
+      trim: true,
+    },
+    messengerSupport: {
+      type: String,
+      default: 'https://m.me/deshio',
+      trim: true,
+    },
+    showFloatingSupport: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }

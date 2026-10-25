@@ -283,7 +283,12 @@ export interface SiteSettings {
     youtube?: string;
     pinterest?: string;
     tiktok?: string;
+    whatsapp?: string;
+    messenger?: string;
   };
+  whatsappSupport?: string;
+  messengerSupport?: string;
+  showFloatingSupport?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -25,7 +25,7 @@ export default function ChatBotTrigger() {
       {hasInteracted && isOpen && <ChatBot onClose={() => setIsOpen(false)} />}
 
       {/* Floating Concierge Action Button */}
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-6 left-6 z-40">
         <button
           onClick={toggle}
           aria-label={isOpen ? "Close fashion concierge" : "Open fashion concierge"}

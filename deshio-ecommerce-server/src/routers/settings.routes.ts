@@ -11,4 +11,10 @@ router.get('/seo', getSeoSettings);
 // PATCH /api/v1/settings/seo (admin only)
 router.patch('/seo', authenticate, authorize('admin', 'super-admin'), updateSeoSettings);
 
+// GET /api/v1/settings/support (public alias)
+router.get('/support', getSeoSettings);
+
+// PATCH /api/v1/settings/support (admin only)
+router.patch('/support', authenticate, authorize('admin', 'super-admin'), updateSeoSettings);
+
 export const SettingsRoutes = router;

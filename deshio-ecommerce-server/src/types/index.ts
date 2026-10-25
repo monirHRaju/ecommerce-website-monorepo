@@ -240,5 +240,10 @@ export interface ISiteSettings {
     youtube?: string;
     pinterest?: string;
     tiktok?: string;
+    whatsapp?: string;
+    messenger?: string;
   };
+  whatsappSupport?: string;
+  messengerSupport?: string;
+  showFloatingSupport?: boolean;
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import Providers from "@/providers/Providers";
+import FloatingSupport from "@/components/support/FloatingSupport";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
 import { API_BASE } from "@/lib/api";
 import "./globals.css";
@@ -113,6 +114,11 @@ export default async function RootLayout({
           socialLinks={socialList}
         />
         <Providers>{children}</Providers>
+        <FloatingSupport
+          whatsapp={settings?.whatsappSupport || settings?.socialLinks?.whatsapp}
+          messenger={settings?.messengerSupport || settings?.socialLinks?.messenger}
+          enabled={settings?.showFloatingSupport !== false}
+        />
       </body>
     </html>
   );
