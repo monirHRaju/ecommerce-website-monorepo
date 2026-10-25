@@ -289,6 +289,51 @@ export interface SiteSettings {
   whatsappSupport?: string;
   messengerSupport?: string;
   showFloatingSupport?: boolean;
+
+  // ── Branding & General ──
+  logoUrl?: string;
+  tagline?: string;
+  announcementText?: string;
+  showAnnouncement?: boolean;
+
+  // ── Contact & Atelier ──
+  address?: string;
+  showroomHours?: string;
+  helplineHours?: string;
+
+  // ── Footer ──
+  footerDescription?: string;
+  copyrightText?: string;
+
+  // ── Contact Page Content ──
+  contactPageTitle?: string;
+  contactPageSubtitle?: string;
+  contactFaqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
+
+  // ── About Page Content ──
+  aboutHeroBadge?: string;
+  aboutHeroTitle?: string;
+  aboutHeroSubtitle?: string;
+  aboutStoryBadge?: string;
+  aboutStoryTitle?: string;
+  aboutStoryParagraph1?: string;
+  aboutStoryParagraph2?: string;
+  aboutStats?: Array<{
+    value: string;
+    label: string;
+  }>;
+  aboutPillars?: Array<{
+    title: string;
+    description: string;
+  }>;
+  aboutMilestones?: Array<{
+    year: string;
+    title: string;
+    description: string;
+  }>;
   createdAt?: string;
   updatedAt?: string;
 }

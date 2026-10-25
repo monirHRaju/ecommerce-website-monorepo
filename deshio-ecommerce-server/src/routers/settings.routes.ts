@@ -17,4 +17,19 @@ router.get('/support', getSeoSettings);
 // PATCH /api/v1/settings/support (admin only)
 router.patch('/support', authenticate, authorize('admin', 'super-admin'), updateSeoSettings);
 
+// GET /api/v1/settings/website (public)
+router.get('/website', getSeoSettings);
+
+// PATCH /api/v1/settings/website (admin only)
+router.patch('/website', authenticate, authorize('admin', 'super-admin'), updateSeoSettings);
+
+// GET /api/v1/settings/pages (public)
+router.get('/pages', getSeoSettings);
+
+// PATCH /api/v1/settings/pages (admin only)
+router.patch('/pages', authenticate, authorize('admin', 'super-admin'), updateSeoSettings);
+
+// GET /api/v1/settings/public (public)
+router.get('/public', getSeoSettings);
+
 export const SettingsRoutes = router;

@@ -3,7 +3,7 @@ import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import Providers from "@/providers/Providers";
 import FloatingSupport from "@/components/support/FloatingSupport";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
-import { API_BASE } from "@/lib/api";
+import { getSiteSettings } from "@/lib/settings";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -18,23 +18,8 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-async function getSeoSettings() {
-  try {
-    const res = await fetch(`${API_BASE}/settings/seo`, {
-      next: { revalidate: 300, tags: ["seo-settings"] },
-    });
-    if (res.ok) {
-      const json = await res.json();
-      return json.data || null;
-    }
-  } catch {
-    // Fallback gracefully
-  }
-  return null;
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSeoSettings();
+  const settings = await getSiteSettings();
 
   const siteName = settings?.siteName || "Deshio";
   const siteTitle =
@@ -96,7 +81,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const settings = await getSeoSettings();
+  const settings = await getSiteSettings();
   const siteName = settings?.siteName || "Deshio";
   const canonicalUrl = settings?.canonicalUrl || "https://deshio.com";
   const socialList = settings?.socialLinks
@@ -109,6 +94,7 @@ export default async function RootLayout({
         <OrganizationJsonLd
           siteName={siteName}
           url={canonicalUrl}
+          logo={settings?.logoUrl}
           contactEmail={settings?.contactEmail}
           contactPhone={settings?.contactPhone}
           socialLinks={socialList}

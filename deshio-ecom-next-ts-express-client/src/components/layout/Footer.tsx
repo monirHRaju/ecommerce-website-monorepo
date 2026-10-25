@@ -1,10 +1,25 @@
 import React from "react";
 import Link from "next/link";
 import { siteConfig } from "@/lib/site";
+import { getSiteSettings } from "@/lib/settings";
 import NewsletterForm from "./NewsletterForm";
 import { ShieldCheck, Truck, RefreshCw, Sparkles } from "lucide-react";
 
-export default function Footer() {
+export default async function Footer() {
+  const settings = await getSiteSettings();
+
+  const brandName = settings?.siteName || siteConfig.shortName;
+  const brandTagline = settings?.tagline || "Haute & Contemporary";
+  const footerDesc = settings?.footerDescription || siteConfig.description;
+  const contactAddress = settings?.address || siteConfig.contact.address;
+  const contactPhone = settings?.contactPhone || siteConfig.contact.phone;
+  const contactEmail = settings?.contactEmail || siteConfig.contact.email;
+
+  const currentYear = new Date().getFullYear();
+  const copyright = (
+    settings?.copyrightText || `© {year} ${brandName}. All rights reserved.`
+  ).replace("{year}", String(currentYear));
+
   return (
     <footer className="bg-stone-50 border-t border-stone-200">
       {/* Editorial Trust Ribbon */}
@@ -14,29 +29,37 @@ export default function Footer() {
             <div className="flex items-center justify-center md:justify-start gap-3">
               <Sparkles className="w-5 h-5 text-amber-700 shrink-0" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">Premium Fabrics</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">
+                  Premium Fabrics
+                </p>
                 <p className="text-xs text-stone-500">100% genuine quality</p>
               </div>
             </div>
             <div className="flex items-center justify-center md:justify-start gap-3">
               <Truck className="w-5 h-5 text-stone-800 shrink-0" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">Swift Delivery</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">
+                  Swift Delivery
+                </p>
                 <p className="text-xs text-stone-500">Inside & outside Dhaka</p>
               </div>
             </div>
             <div className="flex items-center justify-center md:justify-start gap-3">
               <RefreshCw className="w-5 h-5 text-stone-800 shrink-0" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">Hassle-Free Exchange</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">
+                  Hassle-Free Exchange
+                </p>
                 <p className="text-xs text-stone-500">7 days trial period</p>
               </div>
             </div>
             <div className="flex items-center justify-center md:justify-start gap-3">
               <ShieldCheck className="w-5 h-5 text-stone-800 shrink-0" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">Secure Checkout</p>
-                <p className="text-xs text-stone-500">COD, bKash & Cards</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">
+                  Secure Checkout
+                </p>
+                <p className="text-xs text-stone-500">COD & Mobile Banking</p>
               </div>
             </div>
           </div>
@@ -48,20 +71,28 @@ export default function Footer() {
           {/* Brand Column (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
             <Link href="/" className="inline-block">
+              {settings?.logoUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={settings.logoUrl}
+                  alt={brandName}
+                  className="h-9 w-auto max-w-[160px] object-contain mb-2"
+                />
+              ) : null}
               <span className="font-serif text-2xl font-bold tracking-tight text-stone-900">
-                {siteConfig.shortName}
+                {brandName}
               </span>
               <span className="block text-[10px] tracking-widest uppercase font-semibold text-stone-500">
-                Haute & Contemporary
+                {brandTagline}
               </span>
             </Link>
             <p className="text-sm text-stone-600 leading-relaxed font-light max-w-sm">
-              {siteConfig.description}
+              {footerDesc}
             </p>
             <div className="pt-2 text-xs text-stone-500 space-y-1">
-              <p>{siteConfig.contact.address}</p>
-              <p>Helpline: {siteConfig.contact.phone}</p>
-              <p>Email: {siteConfig.contact.email}</p>
+              <p>{contactAddress}</p>
+              <p>Helpline: {contactPhone}</p>
+              <p>Email: {contactEmail}</p>
             </div>
           </div>
 
@@ -108,7 +139,7 @@ export default function Footer() {
             <p className="text-xs font-semibold uppercase tracking-widest text-stone-900">
               The Fashion Edit
             </p>
-            <p className="text-xs text-stone-600 leading-relaxed">
+            <p className="text-xs text-stone-600 leading-relaxed font-light">
               Subscribe to receive preview access to limited seasonal drops, private sales, and sartorial inspirations.
             </p>
             <NewsletterForm />
@@ -117,11 +148,17 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <p>© {new Date().getFullYear()} {siteConfig.name}. All rights reserved.</p>
+          <p>{copyright}</p>
           <div className="flex gap-6">
-            <Link href="/about" className="hover:text-stone-900 transition-colors">About Us</Link>
-            <Link href="/track-order" className="hover:text-stone-900 transition-colors">Track Order</Link>
-            <Link href="/contact" className="hover:text-stone-900 transition-colors">Contact</Link>
+            <Link href="/about" className="hover:text-stone-900 transition-colors">
+              About Us
+            </Link>
+            <Link href="/track-order" className="hover:text-stone-900 transition-colors">
+              Track Order
+            </Link>
+            <Link href="/contact" className="hover:text-stone-900 transition-colors">
+              Contact
+            </Link>
           </div>
         </div>
       </div>
