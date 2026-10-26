@@ -81,7 +81,7 @@ function OrderSuccess({ orderNumber }: { orderNumber: string }) {
           Order Confirmed!
         </h1>
         <p className="text-stone-500 text-sm mt-2 max-w-sm font-light">
-          Thank you for choosing Deshio. Your order has been placed and is being prepared for dispatch.
+          Thank you for your order! It has been placed and is being prepared for dispatch.
         </p>
         <p className="mt-4 text-xs font-mono bg-stone-100 text-stone-800 inline-block px-4 py-2 rounded-xl border border-stone-200">
           Order Reference: #{orderNumber}

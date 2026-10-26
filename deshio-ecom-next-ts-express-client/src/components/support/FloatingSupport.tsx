@@ -24,7 +24,7 @@ export function formatWhatsAppUrl(input?: string): string {
 }
 
 export function formatMessengerUrl(input?: string): string {
-  if (!input) return "https://m.me/deshio";
+  if (!input) return "https://m.me";
   const trimmed = input.trim();
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     return trimmed;
@@ -110,7 +110,7 @@ export default function FloatingSupport({
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Chat with Deshio on WhatsApp"
+          aria-label="Chat on WhatsApp"
           className="group flex items-center gap-3 pr-1 pl-3.5 py-1.5 rounded-full bg-white text-stone-900 border border-stone-200/90 shadow-xl hover:border-emerald-500 hover:shadow-2xl transition-all duration-200"
         >
           <div className="flex flex-col items-end text-right">
@@ -138,7 +138,7 @@ export default function FloatingSupport({
           href={messengerUrl}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Chat with Deshio on Facebook Messenger"
+          aria-label="Chat on Facebook Messenger"
           className="group flex items-center gap-3 pr-1 pl-3.5 py-1.5 rounded-full bg-white text-stone-900 border border-stone-200/90 shadow-xl hover:border-blue-500 hover:shadow-2xl transition-all duration-200"
         >
           <div className="flex flex-col items-end text-right">
