@@ -1,5 +1,10 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const rawBase =
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL) ||
+  "http://localhost:5001/api/v1";
+const cleanBase = rawBase.trim().replace(/\/+$/, "");
+export const API_BASE = cleanBase.endsWith("/api/v1")
+  ? cleanBase
+  : `${cleanBase}/api/v1`;
 
 export interface ApiResponse<T = unknown> {
   statusCode: number;

@@ -163,15 +163,31 @@ const getProductSlugs = asyncHandler(async (_req: Request, res: Response) => {
 
 // GET /api/v1/products/:id — resolves by slug first, then ObjectId fallback
 const getProductById = asyncHandler(async (req: Request, res: Response) => {
-  const param = String(req.params.id).trim();
+  const rawParam = String(req.params.id).trim();
+  let decodedParam = rawParam;
+  try {
+    decodedParam = decodeURIComponent(rawParam).trim();
+  } catch {
+    decodedParam = rawParam;
+  }
 
-  let product = await Product.findOne({ slug: param.toLowerCase() })
+  // Search by slug (exact match, lowercase, or raw)
+  let product = await Product.findOne({
+    $or: [
+      { slug: decodedParam.toLowerCase() },
+      { slug: rawParam.toLowerCase() },
+      { slug: decodedParam },
+      { slug: rawParam },
+    ],
+  })
     .populate('category', 'name slug')
     .populate('createdBy', 'name avatar')
     .lean();
 
-  if (!product && Types.ObjectId.isValid(param)) {
-    product = await Product.findById(param)
+  // Fallback to ObjectId if valid
+  if (!product && (Types.ObjectId.isValid(decodedParam) || Types.ObjectId.isValid(rawParam))) {
+    const validId = Types.ObjectId.isValid(decodedParam) ? decodedParam : rawParam;
+    product = await Product.findById(validId)
       .populate('category', 'name slug')
       .populate('createdBy', 'name avatar')
       .lean();

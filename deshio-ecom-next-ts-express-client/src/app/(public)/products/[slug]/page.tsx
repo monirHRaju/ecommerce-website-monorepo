@@ -12,20 +12,32 @@ import RelatedProducts from "@/components/products/RelatedProducts";
 import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/seo/JsonLd";
 
 export const revalidate = 300;
+export const dynamicParams = true;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
 async function getProduct(slugOrId: string): Promise<Product | null> {
+  let param = slugOrId;
   try {
-    const res = await fetch(`${API_BASE}/products/${slugOrId}`, {
+    param = encodeURIComponent(decodeURIComponent(slugOrId));
+  } catch {
+    param = slugOrId;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/products/${param}`, {
       next: { revalidate: 300, tags: ["products"] },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[getProduct] ${res.status} for ${API_BASE}/products/${param}`);
+      return null;
+    }
     const json = await res.json();
     return json.data || null;
-  } catch {
+  } catch (err: any) {
+    console.error(`[getProduct] Fetch error for ${API_BASE}/products/${param}:`, err?.message || err);
     return null;
   }
 }
@@ -76,15 +88,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  let decodedSlug = slug;
+  try {
+    decodedSlug = decodeURIComponent(slug);
+  } catch {
+    decodedSlug = slug;
+  }
+  const product = await getProduct(decodedSlug);
 
   if (!product) {
     notFound();
   }
 
   // If visited via ObjectId but product has a slug, 308 redirect for SEO
-  if (product.slug && slug.toLowerCase() !== product.slug.toLowerCase()) {
-    redirect(`/products/${product.slug}`, RedirectType.replace);
+  if (product.slug && decodedSlug.toLowerCase() !== product.slug.toLowerCase()) {
+    redirect(`/products/${encodeURIComponent(product.slug)}`, RedirectType.replace);
   }
 
   const categoryObj = typeof product.category === "object" ? product.category : null;
