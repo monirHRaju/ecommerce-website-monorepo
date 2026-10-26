@@ -159,7 +159,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="uppercase tracking-wider font-medium text-[11px]">
             {typeof product.category === "object" && product.category?.name
               ? product.category.name
-              : product.brand || "Deshio Edition"}
+              : product.brand || "Signature Collection"}
           </span>
 
           {/* Rating */}
