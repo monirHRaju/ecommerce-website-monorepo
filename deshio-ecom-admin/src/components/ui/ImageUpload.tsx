@@ -4,10 +4,10 @@ import { useDropzone } from "react-dropzone";
 import toast from "react-hot-toast";
 
 interface Props {
-  value?: string;          // current URL (shown as preview)
+  value?: string; // current URL (shown as preview)
   onChange: (url: string) => void;
-  folder?: string;         // cloudinary subfolder, default "deshio-admin"
-  aspectRatio?: "square" | "wide"; // preview shape
+  folder?: string; // cloudinary subfolder, default "deshio-admin"
+  aspectRatio?: "square" | "wide" | "portrait"; // preview shape
   label?: string;
 }
 
@@ -73,7 +73,12 @@ export default function ImageUpload({
     },
   });
 
-  const heightClass = aspectRatio === "square" ? "h-32" : "h-36";
+  const heightClass =
+    aspectRatio === "portrait"
+      ? "h-48"
+      : aspectRatio === "square"
+      ? "h-32"
+      : "h-36";
 
   return (
     <div className="space-y-2">

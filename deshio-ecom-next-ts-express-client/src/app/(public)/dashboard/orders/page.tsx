@@ -10,16 +10,6 @@ import { ChevronDown, ChevronUp, Package, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-const statusColors: Record<string, string> = {
-  pending: "badge-warning",
-  processing: "badge-info",
-  shipped: "badge-primary",
-  delivered: "badge-success",
-  cancelled: "badge-error",
-};
-
-// ─── Order Card with expandable tracking ──────────────────────────────────────
-
 function OrderCard({ order }: { order: Order }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -34,67 +24,85 @@ function OrderCard({ order }: { order: Order }) {
   });
 
   return (
-    <div className="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
+    <div className="rounded-2xl bg-white border border-stone-200/90 shadow-xs overflow-hidden">
       {/* Summary row */}
-      <div className="p-4">
+      <div className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="font-bold text-sm font-mono text-primary">{order.orderNumber}</p>
-            <p className="text-xs text-base-content/50 mt-0.5">
+            <p className="font-bold text-sm font-mono text-stone-900">
+              {order.orderNumber}
+            </p>
+            <p className="text-xs text-stone-500 mt-1">
               {new Date(order.createdAt).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "short",
                 day: "numeric",
               })}
-              {" · "}{order.items.length} {order.items.length === 1 ? "item" : "items"}
+              {" • "}
+              {order.items.length} {order.items.length === 1 ? "garment" : "garments"}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`badge badge-sm capitalize ${statusColors[order.orderStatus] ?? "badge-ghost"}`}>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
+                order.orderStatus === "delivered"
+                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                  : order.orderStatus === "cancelled"
+                  ? "bg-rose-50 text-rose-700 border border-rose-200"
+                  : "bg-amber-50 text-amber-900 border border-amber-200"
+              }`}
+            >
               {order.orderStatus}
             </span>
-            <span className="font-bold text-primary text-sm">
+            <span className="font-bold text-stone-900 text-sm">
               {formatPrice(order.totalAmount)}
             </span>
           </div>
         </div>
 
-        {/* Item preview */}
-        <div className="mt-2 space-y-0.5">
-          {order.items.slice(0, 2).map((item, i) => (
-            <p key={i} className="text-xs text-base-content/50 line-clamp-1">
-              {item.title} × {item.quantity}
+        {/* Item preview with variant tags */}
+        <div className="mt-3 space-y-1">
+          {order.items.slice(0, 3).map((item, i) => (
+            <p key={i} className="text-xs text-stone-600 line-clamp-1">
+              <span className="font-medium text-stone-900">{item.title}</span>
+              {(item.size || item.color) && (
+                <span className="text-stone-400 ml-1">
+                  [{[item.size, item.color].filter(Boolean).join(", ")}]
+                </span>
+              )}
+              <span className="text-stone-400 ml-1">× {item.quantity}</span>
             </p>
           ))}
-          {order.items.length > 2 && (
-            <p className="text-xs text-base-content/40">+{order.items.length - 2} more</p>
+          {order.items.length > 3 && (
+            <p className="text-xs text-stone-400">+{order.items.length - 3} more</p>
           )}
         </div>
 
-        {/* Track button */}
+        {/* Track toggle button */}
         <button
+          type="button"
           onClick={() => setExpanded((p) => !p)}
-          className="btn btn-ghost btn-xs gap-1 mt-3 text-primary hover:bg-primary/10"
+          className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-stone-800 hover:text-amber-800 transition-colors"
         >
           {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          {expanded ? "Hide Tracking" : "Track Order"}
+          <span>{expanded ? "Hide Dispatch Details" : "Track Shipment"}</span>
         </button>
       </div>
 
       {/* Expandable tracking panel */}
       {expanded && (
-        <div className="border-t border-base-200 bg-base-50 p-4">
+        <div className="border-t border-stone-200 bg-stone-50/60 p-5">
           {loadingTrack ? (
             <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 rounded-xl bg-base-200 animate-pulse" />
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="h-16 rounded-xl bg-stone-200/70 animate-pulse" />
               ))}
             </div>
           ) : trackingData ? (
             <OrderTracker data={trackingData} />
           ) : (
-            <p className="text-sm text-base-content/50 text-center py-6">
-              Could not load tracking info. Please try again.
+            <p className="text-xs text-stone-500 text-center py-4">
+              Could not load shipment details. Please try again.
             </p>
           )}
         </div>
@@ -102,8 +110,6 @@ function OrderCard({ order }: { order: Order }) {
     </div>
   );
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -119,38 +125,59 @@ export default function OrdersPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-24 rounded-xl bg-base-200 animate-pulse" />
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-28 rounded-2xl bg-white border border-stone-200/80 animate-pulse" />
         ))}
       </div>
     );
   }
 
+  const orders = data ?? [];
+
+  if (orders.length === 0) {
+    return (
+      <div className="rounded-2xl bg-white border border-stone-200 p-12 text-center space-y-4">
+        <div className="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center mx-auto text-stone-400">
+          <Package className="w-7 h-7" />
+        </div>
+        <div>
+          <h2 className="font-serif text-xl font-bold text-stone-900">No Orders Placed Yet</h2>
+          <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto font-light">
+            Once you place an order, you can monitor its dispatch progress, estimated arrival, and garment details here.
+          </p>
+        </div>
+        <Link
+          href="/products"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 transition-colors shadow-sm"
+        >
+          Explore Collection
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-black">My Orders</h1>
-        <button onClick={() => refetch()} className="btn btn-ghost btn-sm gap-1.5">
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
+    <div className="space-y-4">
+      <div className="flex items-center justify-between pb-2">
+        <p className="text-xs text-stone-500">
+          Showing <span className="font-semibold text-stone-900">{orders.length}</span> orders
+        </p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-stone-900 transition-colors"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Refresh</span>
         </button>
       </div>
 
-      {!data || data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-          <Package className="w-14 h-14 text-base-content/20" />
-          <p className="font-semibold text-base-content/50">No orders yet</p>
-          <Link href="/products" className="btn btn-primary btn-sm">
-            Start Shopping
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {data.map((order) => (
-            <OrderCard key={order._id} order={order} />
-          ))}
-        </div>
-      )}
+      <div className="space-y-3.5">
+        {orders.map((order) => (
+          <OrderCard key={order._id} order={order} />
+        ))}
+      </div>
     </div>
   );
 }

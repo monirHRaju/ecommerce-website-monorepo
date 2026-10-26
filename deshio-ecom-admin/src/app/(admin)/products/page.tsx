@@ -48,6 +48,7 @@ export default function ProductsPage() {
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [gender, setGender] = useState("");
   const [sort, setSort] = useState("-createdAt");
   const [page, setPage] = useState(1);
 
@@ -59,18 +60,20 @@ export default function ProductsPage() {
     }, 400);
     return () => clearTimeout(t);
   }, [searchInput]);
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const limit = 10;
 
   // ── products query ──
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-products", search, sort, page],
+    queryKey: ["admin-products", search, gender, sort, page],
     queryFn: async () => {
       const params = new URLSearchParams({
         limit: String(limit),
         page: String(page),
         sort,
         ...(search ? { search } : {}),
+        ...(gender ? { gender } : {}),
       });
       const res = await api.get<ApiResponse<Product[]> & { meta: { total: number; totalPages: number } }>(
         `/products?${params}`
@@ -100,12 +103,12 @@ export default function ProductsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white/90">Products</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Manage your product catalogue
+            Manage your fashion product catalogue
           </p>
         </div>
         <Link
           href="/products/create"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors shadow-sm"
         >
           <PlusIcon className="w-4 h-4" />
           Add Product
@@ -116,11 +119,24 @@ export default function ProductsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="text"
-          placeholder="Search products…"
+          placeholder="Search products by title, brand, tag…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="h-10 flex-1 rounded-lg border border-gray-200 bg-white px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
         />
+
+        <select
+          value={gender}
+          onChange={(e) => { setGender(e.target.value); setPage(1); }}
+          className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+        >
+          <option value="">All Genders</option>
+          <option value="men">Men</option>
+          <option value="women">Women</option>
+          <option value="kids">Kids</option>
+          <option value="unisex">Unisex</option>
+        </select>
+
         <select
           value={sort}
           onChange={(e) => { setSort(e.target.value); setPage(1); }}
@@ -141,7 +157,7 @@ export default function ProductsPage() {
           <Table>
             <TableHeader className="border-gray-100 dark:border-gray-800 border-y">
               <TableRow>
-                {["Product", "Category", "Price", "Stock", "Rating", "Sold", "Actions"].map((h) => (
+                {["Product", "Category", "Price", "Stock & Variants", "Rating", "Sold", "Actions"].map((h) => (
                   <TableCell
                     key={h}
                     isHeader
@@ -170,18 +186,30 @@ export default function ProductsPage() {
                               <img
                                 src={p.images[0]}
                                 alt={p.title}
-                                className="w-10 h-10 rounded-lg object-cover border border-gray-100 dark:border-gray-700 shrink-0"
+                                className="w-11 h-12 rounded-lg object-cover border border-gray-100 dark:border-gray-700 shrink-0"
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0" />
+                              <div className="w-11 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0" />
                             )}
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-800 dark:text-white/90 truncate max-w-[180px]">
+                              <p className="text-sm font-medium text-gray-800 dark:text-white/90 truncate max-w-[200px]" title={p.title}>
                                 {p.title}
                               </p>
-                              {p.isFeatured && (
-                                <Badge size="sm" color="info">Featured</Badge>
-                              )}
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                {p.gender && (
+                                  <span className="capitalize text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                    {p.gender}
+                                  </span>
+                                )}
+                                {p.brand && (
+                                  <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                                    {p.brand}
+                                  </span>
+                                )}
+                                {p.isFeatured && (
+                                  <Badge size="sm" color="info">Featured</Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
@@ -203,11 +231,16 @@ export default function ProductsPage() {
                           )}
                         </TableCell>
 
-                        {/* stock */}
-                        <TableCell className="py-3 px-4">
+                        {/* stock & variants */}
+                        <TableCell className="py-3 px-4 whitespace-nowrap">
                           <Badge size="sm" color={stockColor(p.stock)}>
-                            {p.stock === 0 ? "Out of stock" : `${p.stock} left`}
+                            {p.stock === 0 ? "Out of stock" : `${p.stock} in stock`}
                           </Badge>
+                          {p.variants && p.variants.length > 0 && (
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                              {p.variants.length} variant{p.variants.length > 1 ? "s" : ""}
+                            </p>
+                          )}
                         </TableCell>
 
                         {/* rating */}

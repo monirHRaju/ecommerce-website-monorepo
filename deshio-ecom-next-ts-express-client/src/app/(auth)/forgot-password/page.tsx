@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, CheckCircle2, Loader2, Mail } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import api from "@/lib/axios";
 
 const schema = z.object({

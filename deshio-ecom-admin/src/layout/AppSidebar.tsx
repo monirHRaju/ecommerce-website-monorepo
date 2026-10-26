@@ -16,6 +16,7 @@ import {
   HorizontaLDots,
   ListIcon,
   PageIcon,
+  PaperPlaneIcon,
   UserCircleIcon,
 } from "../icons/index";
 
@@ -62,6 +63,11 @@ const navItems: NavItem[] = [
     path: "/payment-methods",
   },
   {
+    icon: <PaperPlaneIcon />,
+    name: "Delivery Options",
+    path: "/delivery-zones",
+  },
+  {
     icon: <DollarLineIcon />,
     name: "Coupons",
     path: "/coupons",
@@ -89,6 +95,10 @@ const othersItems: NavItem[] = [
     subItems: [
       { name: "My Profile", path: "/settings/profile" },
       { name: "Change Password", path: "/settings/password" },
+      { name: "Website & Branding", path: "/settings/website" },
+      { name: "Pages Content", path: "/settings/pages" },
+      { name: "SEO & Metadata", path: "/settings/seo" },
+      { name: "Customer Support", path: "/settings/support" },
     ],
   },
 ];

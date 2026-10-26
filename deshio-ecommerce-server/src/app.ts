@@ -1,13 +1,16 @@
 import cors from 'cors';
 import express, { Application, NextFunction, Request, Response } from 'express';
 import './config/passport'; // initialize passport strategies
-import AppError from './utils/AppError';
 import router from './routers';
+import AppError from './utils/AppError';
 
 const app: Application = express();
 
+// Disable X-Powered-By header for smaller/cleaner responses
+app.disable('x-powered-by');
+
 // Parsers
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // CORS — allow all configured origins
 const allowedOrigins = [
@@ -29,12 +32,25 @@ app.use(
   })
 );
 
+// Public catalog cache headers for fast edge/SSR caching
+app.use('/api/v1', (req: Request, res: Response, next: NextFunction) => {
+  if (
+    req.method === 'GET' &&
+    (req.path.startsWith('/products') ||
+      req.path.startsWith('/categories') ||
+      req.path.startsWith('/delivery-zones'))
+  ) {
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
+  }
+  next();
+});
+
 // Application routes
 app.use('/api/v1', router);
 
 // Root health check
 app.get('/', (_req: Request, res: Response) => {
-  res.send('Deshio e-commerce Server is running!');
+  res.send('Fashion e-commerce API server is running!');
 });
 
 // 404 handler

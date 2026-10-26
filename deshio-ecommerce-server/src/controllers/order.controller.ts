@@ -6,6 +6,7 @@ import Order from '../models/order.model';
 import PaymentMethod from '../models/paymentMethod.model';
 import Product from '../models/product.model';
 import User from '../models/user.model';
+import { IOrderItem, IVariant } from '../types';
 import AppError from '../utils/AppError';
 import asyncHandler from '../utils/asyncHandler';
 import { createNotification, LOW_STOCK_THRESHOLD } from '../utils/notificationService';
@@ -13,7 +14,15 @@ import sendResponse from '../utils/sendResponse';
 
 // POST /api/v1/orders  { shippingAddress, paymentMethod, deliveryZoneId?, couponCode?, orderNote? }
 const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  const { shippingAddress, phone, paymentMethod = 'card', deliveryZoneId, couponCode, orderNote, mobilePayment } = req.body;
+  const {
+    shippingAddress,
+    phone,
+    paymentMethod = 'card',
+    deliveryZoneId,
+    couponCode,
+    orderNote,
+    mobilePayment,
+  } = req.body;
   if (!shippingAddress) throw new AppError('Shipping address is required', 400);
   if (!phone) throw new AppError('Mobile number is required', 400);
 
@@ -24,32 +33,109 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const cart = await Cart.findOne({ userId: req.user!.id }).populate<{
-    items: { productId: any; quantity: number; price: number }[];
+    items: {
+      productId: any;
+      quantity: number;
+      price: number;
+      size?: string;
+      color?: string;
+      sku?: string;
+    }[];
   }>('items.productId');
 
   if (!cart || cart.items.length === 0) throw new AppError('Cart is empty', 400);
 
-  // Build order items and update stock
-  const orderItems = [];
-  for (const item of cart.items) {
-    const product = item.productId;
-    if (!product) throw new AppError('Product not found in cart', 404);
-    if (product.stock < item.quantity) {
-      throw new AppError(`Insufficient stock for ${product.title}`, 400);
+  // Build order items and atomically decrement stock (with rollback if a later item fails)
+  const orderItems: IOrderItem[] = [];
+  const decremented: { productId: any; sku?: string; quantity: number }[] = [];
+
+  try {
+    for (const item of cart.items) {
+      const product = item.productId;
+      if (!product) throw new AppError('Product not found in cart', 404);
+
+      const variants: IVariant[] = product.variants ?? [];
+      let matchedVariant: IVariant | undefined;
+
+      if (variants.length > 0) {
+        matchedVariant =
+          (item.sku && variants.find((v) => v.sku === item.sku)) ||
+          variants.find(
+            (v) =>
+              (!item.size || v.size.toLowerCase() === item.size.toLowerCase()) &&
+              (!item.color || v.color.toLowerCase() === item.color.toLowerCase())
+          ) ||
+          variants.find((v) => v.stock >= item.quantity);
+
+        if (!matchedVariant) {
+          throw new AppError(`Selected option for "${product.title}" is out of stock`, 400);
+        }
+
+        const updated = await Product.findOneAndUpdate(
+          {
+            _id: product._id,
+            'variants.sku': matchedVariant.sku,
+            'variants.stock': { $gte: item.quantity },
+          },
+          {
+            $inc: {
+              'variants.$.stock': -item.quantity,
+              stock: -item.quantity,
+              sold: item.quantity,
+            },
+          },
+          { new: true }
+        );
+
+        if (!updated) {
+          throw new AppError(
+            `Insufficient stock for "${product.title}" (${matchedVariant.size} / ${matchedVariant.color})`,
+            400
+          );
+        }
+        decremented.push({ productId: product._id, sku: matchedVariant.sku, quantity: item.quantity });
+      } else {
+        const updated = await Product.findOneAndUpdate(
+          { _id: product._id, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity, sold: item.quantity } },
+          { new: true }
+        );
+        if (!updated) {
+          throw new AppError(`Insufficient stock for "${product.title}"`, 400);
+        }
+        decremented.push({ productId: product._id, quantity: item.quantity });
+      }
+
+      orderItems.push({
+        productId: product._id,
+        quantity: item.quantity,
+        price: item.price,
+        title: product.title,
+        image: product.images?.[0] || '',
+        size: matchedVariant?.size ?? item.size,
+        color: matchedVariant?.color ?? item.color,
+        sku: matchedVariant?.sku ?? item.sku,
+      });
     }
-    orderItems.push({
-      productId: product._id,
-      quantity: item.quantity,
-      price: item.price,
-      title: product.title,
-      image: product.images?.[0] || '',
-    });
-    await Product.findByIdAndUpdate(product._id, {
-      $inc: { stock: -item.quantity, sold: item.quantity },
-    });
+  } catch (err) {
+    // Rollback any decrements already applied
+    for (const d of decremented) {
+      if (d.sku) {
+        await Product.updateOne(
+          { _id: d.productId, 'variants.sku': d.sku },
+          { $inc: { 'variants.$.stock': d.quantity, stock: d.quantity, sold: -d.quantity } }
+        );
+      } else {
+        await Product.updateOne(
+          { _id: d.productId },
+          { $inc: { stock: d.quantity, sold: -d.quantity } }
+        );
+      }
+    }
+    throw err;
   }
 
-  const itemsTotal = cart.totalAmount;
+  const itemsTotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   // ── Delivery zone ──────────────────────────────────────────────────────────
   let deliveryCharge = 0;
@@ -68,12 +154,15 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
     const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim() });
     if (!coupon || !coupon.isActive) throw new AppError('Invalid or inactive coupon code', 400);
     if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new AppError('Coupon has expired', 400);
-    if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) throw new AppError('Coupon usage limit reached', 400);
-    if (itemsTotal < coupon.minOrderAmount) throw new AppError(`Minimum order amount for this coupon is ${coupon.minOrderAmount}`, 400);
+    if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses)
+      throw new AppError('Coupon usage limit reached', 400);
+    if (itemsTotal < coupon.minOrderAmount)
+      throw new AppError(`Minimum order amount for this coupon is ${coupon.minOrderAmount}`, 400);
 
-    couponDiscount = coupon.type === 'percent'
-      ? Math.min((itemsTotal * coupon.value) / 100, itemsTotal)
-      : Math.min(coupon.value, itemsTotal);
+    couponDiscount =
+      coupon.type === 'percent'
+        ? Math.min((itemsTotal * coupon.value) / 100, itemsTotal)
+        : Math.min(coupon.value, itemsTotal);
     appliedCouponCode = coupon.code;
 
     // Increment usage count
@@ -83,13 +172,23 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
   // ── COD processing fee ─────────────────────────────────────────────────────
   const codProcessingFee = paymentMethod === 'cash_on_delivery' ? 20 : 0;
 
-  const totalAmount = Math.max(0, itemsTotal + deliveryCharge - couponDiscount + codProcessingFee);
+  const totalAmount = Math.max(
+    0,
+    Math.round((itemsTotal + deliveryCharge - couponDiscount + codProcessingFee) * 100) / 100
+  );
 
   // ── Mobile payment validation ───────────────────────────────────────────────
   let resolvedMobilePayment: Record<string, any> | undefined;
   if (paymentMethod === 'mobile_banking') {
-    if (!mobilePayment?.paymentMethodId || !mobilePayment?.mobileLast4 || !mobilePayment?.transactionId) {
-      throw new AppError('Mobile payment details (payment method, last 4 digits, transaction ID) are required', 400);
+    if (
+      !mobilePayment?.paymentMethodId ||
+      !mobilePayment?.mobileLast4 ||
+      !mobilePayment?.transactionId
+    ) {
+      throw new AppError(
+        'Mobile payment details (payment method, last 4 digits, transaction ID) are required',
+        400
+      );
     }
     if (!/^\d{4}$/.test(mobilePayment.mobileLast4)) {
       throw new AppError('Mobile last 4 digits must be exactly 4 digits', 400);
@@ -161,7 +260,7 @@ const getOrders = asyncHandler(async (req: Request, res: Response) => {
   const skip = (page - 1) * limit;
 
   const filter: Record<string, any> = {};
-  if (req.user!.role !== 'admin') filter.userId = req.user!.id;
+  if (req.user!.role !== 'admin' && req.user!.role !== 'super-admin') filter.userId = req.user!.id;
   if (req.query.status) filter.orderStatus = req.query.status;
 
   const [orders, total] = await Promise.all([
@@ -188,7 +287,7 @@ const getOrderById = asyncHandler(async (req: Request, res: Response) => {
   if (!order) throw new AppError('Order not found', 404);
 
   const isOwner = String(order.userId) === req.user!.id;
-  if (!isOwner && req.user!.role !== 'admin') {
+  if (!isOwner && req.user!.role !== 'admin' && req.user!.role !== 'super-admin') {
     throw new AppError('Not authorized to view this order', 403);
   }
 
@@ -231,11 +330,24 @@ const cancelOrder = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Only pending orders can be cancelled', 400);
   }
 
-  // Restore stock
+  // Restore variant & product stock
   for (const item of order.items) {
-    await Product.findByIdAndUpdate(item.productId, {
-      $inc: { stock: item.quantity, sold: -item.quantity },
-    });
+    if (item.sku) {
+      await Product.updateOne(
+        { _id: item.productId, 'variants.sku': item.sku },
+        {
+          $inc: {
+            'variants.$.stock': item.quantity,
+            stock: item.quantity,
+            sold: -item.quantity,
+          },
+        }
+      );
+    } else {
+      await Product.findByIdAndUpdate(item.productId, {
+        $inc: { stock: item.quantity, sold: -item.quantity },
+      });
+    }
   }
 
   order.orderStatus = 'cancelled';
@@ -276,7 +388,15 @@ const trackOrder = asyncHandler(async (req: Request, res: Response) => {
     couponDiscount: order.couponDiscount,
     orderNote: order.orderNote,
     deliveryZone: order.deliveryZoneId,
-    items: order.items.map((i) => ({ title: i.title, quantity: i.quantity, image: i.image, price: i.price })),
+    items: order.items.map((i) => ({
+      title: i.title,
+      quantity: i.quantity,
+      image: i.image,
+      price: i.price,
+      size: i.size,
+      color: i.color,
+      sku: i.sku,
+    })),
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
   };

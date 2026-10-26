@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact Us",
+  title: "Contact & Studio Concierge — Deshio Fashion",
   description:
-    "Get in touch with the Deshio team. We reply within 24 hours. Find our email, phone, and office address.",
+    "Connect with our Dhaka studio concierge for sizing guidance, custom handloom orders, or delivery inquiries across Bangladesh.",
   openGraph: {
-    title: "Contact Deshio",
+    title: "Contact Deshio — Studio Concierge & Customer Care",
     description:
-      "Questions, feedback, or support — our team is here to help.",
+      "Reach our Dhaka team for garment sizing advice, exchange support, or bespoke inquiries.",
+    type: "website",
   },
 };
 

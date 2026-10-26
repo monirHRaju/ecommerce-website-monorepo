@@ -8,6 +8,9 @@ const orderItemSchema = new Schema(
     price: { type: Number, required: true },
     title: { type: String, required: true },
     image: { type: String },
+    size: { type: String, trim: true },
+    color: { type: String, trim: true },
+    sku: { type: String, trim: true },
   },
   { _id: false }
 );

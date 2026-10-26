@@ -28,17 +28,36 @@ export interface Category {
 
 // ─── Product ─────────────────────────────────────────────────────────────────
 
+export type Gender = "men" | "women" | "kids" | "unisex";
+
+export interface Variant {
+  size: string;
+  color: string;
+  colorHex?: string;
+  sku?: string;
+  stock: number;
+  priceOverride?: number;
+}
+
 export interface Product {
   _id: string;
   title: string;
+  slug?: string;
   description: string;
   brand?: string;
   price: number;
-  discount: number;         // 0-100 percentage
+  discount: number; // 0-100 percentage
   stock: number;
   category: string | Category;
   images: string[];
   tags: string[];
+  // Fashion attributes
+  gender?: Gender;
+  material?: string;
+  fit?: string;
+  careInstructions?: string;
+  sizeGuide?: string;
+  variants?: Variant[];
   specifications: Record<string, string>; // Map<string,string> serialised
   rating: number;
   reviewCount: number;
@@ -66,6 +85,9 @@ export interface OrderItem {
   image: string;
   price: number;
   quantity: number;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 export interface ShippingAddress {
@@ -154,8 +176,7 @@ export interface Coupon {
 export interface DeliveryZone {
   _id: string;
   name: string;
-  countries: string[];
-  shippingFee: number;
+  charge: number;
   estimatedDays: string;
   isActive: boolean;
   createdAt: string;
@@ -204,7 +225,13 @@ export interface DashboardChartData {
 
 // ─── Notification ───────────────────────────────────────────────────────────
 
-export type NotificationType = 'order' | 'product' | 'payment' | 'user' | 'review' | 'system';
+export type NotificationType =
+  | "order"
+  | "product"
+  | "payment"
+  | "user"
+  | "review"
+  | "system";
 
 export interface Notification {
   _id: string;
@@ -212,7 +239,7 @@ export interface Notification {
   title: string;
   message: string;
   referenceId?: string;
-  referenceModel?: 'Order' | 'Product' | 'User' | 'Review';
+  referenceModel?: "Order" | "Product" | "User" | "Review";
   isRead: boolean;
   createdAt: string;
   updatedAt: string;
@@ -232,4 +259,81 @@ export interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
+}
+
+// ─── Site Settings & SEO ──────────────────────────────────────────────────────
+export interface SiteSettings {
+  _id?: string;
+  siteName: string;
+  siteTitle: string;
+  titleTemplate: string;
+  metaDescription: string;
+  metaKeywords: string[];
+  canonicalUrl: string;
+  ogImage: string;
+  twitterHandle: string;
+  googleSiteVerification?: string;
+  bingSiteVerification?: string;
+  indexSite: boolean;
+  contactEmail?: string;
+  contactPhone?: string;
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    youtube?: string;
+    pinterest?: string;
+    tiktok?: string;
+    whatsapp?: string;
+    messenger?: string;
+  };
+  whatsappSupport?: string;
+  messengerSupport?: string;
+  showFloatingSupport?: boolean;
+
+  // ── Branding & General ──
+  logoUrl?: string;
+  tagline?: string;
+  announcementText?: string;
+  showAnnouncement?: boolean;
+
+  // ── Contact & Atelier ──
+  address?: string;
+  showroomHours?: string;
+  helplineHours?: string;
+
+  // ── Footer ──
+  footerDescription?: string;
+  copyrightText?: string;
+
+  // ── Contact Page Content ──
+  contactPageTitle?: string;
+  contactPageSubtitle?: string;
+  contactFaqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
+
+  // ── About Page Content ──
+  aboutHeroBadge?: string;
+  aboutHeroTitle?: string;
+  aboutHeroSubtitle?: string;
+  aboutStoryBadge?: string;
+  aboutStoryTitle?: string;
+  aboutStoryParagraph1?: string;
+  aboutStoryParagraph2?: string;
+  aboutStats?: Array<{
+    value: string;
+    label: string;
+  }>;
+  aboutPillars?: Array<{
+    title: string;
+    description: string;
+  }>;
+  aboutMilestones?: Array<{
+    year: string;
+    title: string;
+    description: string;
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
 }

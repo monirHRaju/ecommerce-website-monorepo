@@ -1,304 +1,175 @@
-"use client";
+import type { Metadata } from "next";
+import { Clock, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
+import { getSiteSettings } from "@/lib/settings";
+import ContactForm from "@/components/contact/ContactForm";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Resolver } from "react-hook-form";
-import {
-  CheckCircle,
-  Clock,
-  Mail,
-  MapPin,
-  MessageSquare,
-  Phone,
-  Send,
-} from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+export const revalidate = 300;
 
-const schema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Enter a valid email address"),
-  subject: z.string().min(4, "Subject is required"),
-  message: z.string().min(20, "Message must be at least 20 characters"),
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const name = settings?.siteName || "Deshio";
+  return {
+    title: `Contact & Studio Concierge — ${name} Fashion`,
+    description:
+      settings?.contactPageSubtitle ||
+      `Connect with our ${name} studio concierge for sizing guidance, custom handloom orders, or delivery inquiries across Bangladesh.`,
+    openGraph: {
+      title: `Contact ${name} — Studio Concierge & Customer Care`,
+      description:
+        settings?.contactPageSubtitle ||
+        `Reach our team for garment sizing advice, exchange support, or bespoke inquiries.`,
+      type: "website",
+    },
+  };
+}
 
-type FormValues = z.infer<typeof schema>;
-
-const infoCards = [
+const defaultFaqs = [
   {
-    icon: Mail,
-    label: "Email Us",
-    value: "hello@deshio.com",
-    sub: "We reply within 24 hours",
-    color: "text-primary",
-    bg: "bg-primary/10",
+    question: "How long does delivery take inside and outside Dhaka?",
+    answer:
+      "Orders inside Dhaka arrive within 24–48 hours. Nationwide courier deliveries across all 64 districts take 3–5 business days.",
   },
   {
-    icon: Phone,
-    label: "Call Us",
-    value: "+1 (555) 000-1234",
-    sub: "Mon – Fri, 9 am – 6 pm PST",
-    color: "text-secondary",
-    bg: "bg-secondary/10",
+    question: "Can I exchange a garment if the size doesn't fit?",
+    answer:
+      "Yes! We offer a hassle-free 7-day size exchange on all unworn garments with original tags attached.",
   },
   {
-    icon: MapPin,
-    label: "Visit Us",
-    value: "123 Tech Street",
-    sub: "Silicon Valley, CA 94025",
-    color: "text-info",
-    bg: "bg-info/10",
+    question: "What payment methods do you accept?",
+    answer:
+      "We accept Cash on Delivery (COD) nationwide as well as Mobile Banking (bKash, Nagad, and Rocket).",
   },
   {
-    icon: Clock,
-    label: "Support Hours",
-    value: "24 / 7",
-    sub: "Live chat always available",
-    color: "text-success",
-    bg: "bg-success/10",
+    question: "How can I be sure of my Panjabi or Kurti measurements?",
+    answer:
+      "Every product page includes an interactive Size Guide with chest, shoulder, and garment length measurements in inches.",
   },
 ];
 
-const faqs = [
-  {
-    q: "How long does shipping take?",
-    a: "Standard shipping takes 3–7 business days. Express (1–2 days) is available at checkout.",
-  },
-  {
-    q: "What is your return policy?",
-    a: "We offer a 30-day hassle-free returns policy on all items. Start a return from your dashboard.",
-  },
-  {
-    q: "Are all products genuine?",
-    a: "Absolutely. We source directly from authorised distributors and certified brand partners.",
-  },
-  {
-    q: "Can I track my order?",
-    a: "Yes! Use the Track Order page or check your dashboard for real-time tracking updates.",
-  },
-];
+export default async function ContactPage() {
+  const settings = await getSiteSettings();
 
-export default function ContactPage() {
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const title = settings?.contactPageTitle || "We'd Love to Hear From You";
+  const subtitle =
+    settings?.contactPageSubtitle ||
+    "Whether you need sizing guidance, fabric care advice, or assistance with an existing order, our studio team is ready to assist.";
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema) as unknown as Resolver<FormValues>,
-  });
+  const email = settings?.contactEmail || "care@deshio.com";
+  const phone = settings?.contactPhone || "+880 1700-000000";
+  const address = settings?.address || "Road 11, Banani, Dhaka 1213, Bangladesh";
+  const showroomHours = settings?.showroomHours || "11:00 AM – 9:00 PM (Open 7 Days)";
+  const helplineHours = settings?.helplineHours || "Sat – Thu, 10:00 AM – 8:00 PM BST";
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async function onSubmit(_data: unknown) {
-    setSubmitting(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200));
-    setSubmitting(false);
-    setSubmitted(true);
-    reset();
-  }
+  const infoCards = [
+    {
+      icon: Mail,
+      label: "Concierge Email",
+      value: email,
+      sub: "Responses within 12 business hours",
+    },
+    {
+      icon: Phone,
+      label: "Studio Helpline",
+      value: phone,
+      sub: helplineHours,
+    },
+    {
+      icon: MapPin,
+      label: "Flagship Atelier",
+      value: address,
+      sub: "Showroom & Fitting Studio",
+    },
+    {
+      icon: Clock,
+      label: "Showroom Hours",
+      value: showroomHours,
+      sub: "Walk-ins Welcome",
+    },
+  ];
+
+  const faqs = settings?.contactFaqs?.length ? settings.contactFaqs : defaultFaqs;
 
   return (
-    <div className="bg-base-100">
-      {/* ── Hero ───────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden py-20 lg:py-28">
-        <div className="absolute inset-0 page-hero-bg" />
-        <div className="relative mx-auto max-w-3xl px-6 text-center">
-          <div className="inline-flex items-center gap-2 badge badge-primary badge-lg px-4 py-3 mb-6">
-            <MessageSquare className="w-4 h-4" />
-            We&apos;d love to hear from you
+    <div className="min-h-screen bg-stone-50/30">
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <section className="bg-white border-b border-stone-200 py-14 sm:py-20 px-4 sm:px-6 text-center">
+        <div className="max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-semibold uppercase tracking-widest mb-4">
+            <MessageSquare className="w-3.5 h-3.5" />
+            Client Concierge
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-base-content leading-tight mb-4">
-            Get in <span className="text-primary">touch</span>
+          <h1 className="font-serif text-3xl sm:text-5xl text-stone-900 tracking-tight mb-4">
+            {title}
           </h1>
-          <p className="text-base-content/60 text-lg">
-            Have a question, suggestion, or just want to say hello? Fill out
-            the form below — our team will get back to you within 24 hours.
+          <p className="text-stone-500 text-sm sm:text-base font-light leading-relaxed">
+            {subtitle}
           </p>
         </div>
       </section>
 
-      {/* ── Info Cards ─────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-6 -mt-4 pb-10">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {infoCards.map(({ icon: Icon, label, value, sub, color, bg }) => (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-16">
+        {/* ── Contact Info Cards ──────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {infoCards.map(({ icon: Icon, label, value, sub }) => (
             <div
               key={label}
-              className="card bg-base-100 border border-base-200 p-5 hover:shadow-md transition-shadow"
+              className="rounded-2xl bg-white border border-stone-200 p-6 flex items-start gap-4 shadow-2xs"
             >
-              <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mb-3`}>
-                <Icon className={`w-5 h-5 ${color}`} />
+              <div className="w-10 h-10 rounded-xl bg-stone-900 text-white flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4" />
               </div>
-              <p className="text-xs text-base-content/50 font-medium mb-1">
-                {label}
-              </p>
-              <p className="font-bold text-base-content text-sm">{value}</p>
-              <p className="text-xs text-base-content/40 mt-0.5">{sub}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+                  {label}
+                </p>
+                <p className="font-serif text-sm sm:text-base font-semibold text-stone-900 mt-0.5 truncate">
+                  {value}
+                </p>
+                <p className="text-xs text-stone-500 mt-0.5 font-light">{sub}</p>
+              </div>
             </div>
           ))}
         </div>
-      </section>
 
-      {/* ── Form + FAQ ─────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="grid lg:grid-cols-2 gap-10">
-          {/* Contact Form */}
-          <div className="card bg-base-100 border border-base-200 p-8">
-            <h2 className="text-xl font-black text-base-content mb-6">
-              Send us a message
-            </h2>
-
-            {submitted ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-success" />
-                </div>
-                <h3 className="font-bold text-xl text-base-content">
-                  Message sent!
-                </h3>
-                <p className="text-base-content/60 text-sm max-w-xs">
-                  Thanks for reaching out. We&apos;ll reply to your email
-                  within 24 hours.
-                </p>
-                <button
-                  className="btn btn-primary btn-sm mt-2"
-                  onClick={() => setSubmitted(false)}
-                >
-                  Send another
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="label pb-1">
-                      <span className="label-text text-sm font-medium">
-                        Your Name
-                      </span>
-                    </label>
-                    <input
-                      {...register("name")}
-                      className="input input-bordered w-full input-sm"
-                      placeholder="Alex Rivera"
-                    />
-                    {errors.name && (
-                      <p className="text-error text-xs mt-1">
-                        {errors.name.message}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="label pb-1">
-                      <span className="label-text text-sm font-medium">
-                        Email Address
-                      </span>
-                    </label>
-                    <input
-                      {...register("email")}
-                      type="email"
-                      className="input input-bordered w-full input-sm"
-                      placeholder="you@example.com"
-                    />
-                    {errors.email && (
-                      <p className="text-error text-xs mt-1">
-                        {errors.email.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label pb-1">
-                    <span className="label-text text-sm font-medium">
-                      Subject
-                    </span>
-                  </label>
-                  <input
-                    {...register("subject")}
-                    className="input input-bordered w-full input-sm"
-                    placeholder="How can we help?"
-                  />
-                  {errors.subject && (
-                    <p className="text-error text-xs mt-1">
-                      {errors.subject.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="label pb-1">
-                    <span className="label-text text-sm font-medium">
-                      Message
-                    </span>
-                  </label>
-                  <textarea
-                    {...register("message")}
-                    rows={6}
-                    className="textarea textarea-bordered w-full text-sm"
-                    placeholder="Tell us what's on your mind…"
-                  />
-                  {errors.message && (
-                    <p className="text-error text-xs mt-1">
-                      {errors.message.message}
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn btn-primary w-full gap-2"
-                >
-                  {submitting ? (
-                    <span className="loading loading-spinner loading-sm" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  {submitting ? "Sending…" : "Send Message"}
-                </button>
-              </form>
-            )}
+        {/* ── Form + FAQ Grid ─────────────────────────────────────────── */}
+        <div className="grid lg:grid-cols-12 gap-10 items-start">
+          {/* Interactive Client Island Form */}
+          <div className="lg:col-span-7">
+            <ContactForm />
           </div>
 
-          {/* FAQ */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-black text-base-content">
-              Frequently asked questions
-            </h2>
-            <p className="text-sm text-base-content/50">
-              Quick answers to the questions we hear most.
-            </p>
-            <div className="space-y-3">
-              {faqs.map(({ q, a }) => (
-                <div
-                  key={q}
-                  className="card bg-base-100 border border-base-200 p-5"
-                >
-                  <h4 className="font-semibold text-base-content text-sm mb-1.5">
-                    {q}
-                  </h4>
-                  <p className="text-sm text-base-content/60 leading-relaxed">
-                    {a}
-                  </p>
-                </div>
-              ))}
+          {/* Dynamic Accordion FAQs */}
+          <div className="lg:col-span-5 space-y-5">
+            <div>
+              <h2 className="font-serif text-2xl text-stone-900 mb-1">
+                Common Questions
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-500 font-light">
+                Immediate answers regarding sizing, exchanges, and nationwide delivery.
+              </p>
             </div>
 
-            {/* Map placeholder */}
-            <div className="card bg-base-200 border border-base-300 overflow-hidden h-48 flex items-center justify-center mt-2">
-              <div className="text-center space-y-2">
-                <MapPin className="w-8 h-8 text-primary mx-auto opacity-60" />
-                <p className="text-sm text-base-content/50">
-                  123 Tech Street, Silicon Valley, CA
-                </p>
-              </div>
+            <div className="space-y-3">
+              {faqs.map(({ question, answer }, idx) => (
+                <details
+                  key={idx}
+                  className="group rounded-2xl bg-white border border-stone-200 p-5 open:border-stone-400 transition-colors"
+                >
+                  <summary className="font-medium text-sm text-stone-900 cursor-pointer list-none flex items-center justify-between gap-3">
+                    <span>{question}</span>
+                    <span className="text-stone-400 group-open:rotate-45 transition-transform text-lg leading-none">
+                      +
+                    </span>
+                  </summary>
+                  <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed mt-3 pt-3 border-t border-stone-100">
+                    {answer}
+                  </p>
+                </details>
+              ))}
             </div>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

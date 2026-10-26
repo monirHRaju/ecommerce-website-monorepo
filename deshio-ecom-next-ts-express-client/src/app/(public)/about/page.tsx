@@ -1,331 +1,309 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Award,
-  Globe,
+  Compass,
   Heart,
-  Headphones,
-  Lightbulb,
-  Package,
+  Layers,
   ShieldCheck,
-  Star,
-  Target,
+  Sparkles,
   Truck,
   Users,
-  Zap,
 } from "lucide-react";
-import Link from "next/link";
+import { getSiteSettings } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "About Us",
-  description:
-    "Learn about Deshio — our story, mission, values, and the team behind your favourite electronics store.",
-  openGraph: {
-    title: "About Deshio",
+export const revalidate = 300;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const name = settings?.siteName || "Deshio";
+  return {
+    title: `Our Story — Heritage Craft & Contemporary Fashion | ${name}`,
     description:
-      "Your trusted partner for the latest electronics and tech gadgets.",
-  },
-};
+      settings?.aboutHeroSubtitle ||
+      `Discover the story behind ${name} — bridging centuries-old Bangladeshi handloom artistry with refined contemporary silhouettes.`,
+    openGraph: {
+      title: `About ${name} — Heritage & Contemporary Fashion`,
+      description:
+        settings?.aboutHeroSubtitle ||
+        "Thoughtfully tailored garments crafted from breathable natural fibers and authentic Bangladeshi handlooms.",
+      type: "website",
+    },
+  };
+}
 
-const stats = [
-  { value: "50K+", label: "Happy Customers", icon: Users },
-  { value: "5K+", label: "Products Listed", icon: Package },
-  { value: "120+", label: "Brands Partnered", icon: Award },
-  { value: "99%", label: "Satisfaction Rate", icon: Star },
+const defaultStats = [
+  { value: "45K+", label: "Patrons Across Bangladesh" },
+  { value: "180+", label: "Master Weavers & Artisans" },
+  { value: "64", label: "Districts Delivered" },
+  { value: "99.2%", label: "Fit & Quality Satisfaction" },
 ];
 
-const values = [
+const defaultPillars = [
   {
-    icon: ShieldCheck,
-    title: "Quality Assurance",
+    title: "Breathable Natural Fibers",
     description:
-      "Every product is vetted for quality and authenticity before it reaches your hands. We only partner with trusted manufacturers.",
-    color: "text-primary",
-    bg: "bg-primary/10",
+      "Every garment begins with thoughtfully sourced textiles — combed organic cotton, pure linen, mulberry silk, and hand-spun muslin engineered for our tropical climate.",
   },
   {
-    icon: Lightbulb,
-    title: "Innovation First",
+    title: "Artisanal Heritage",
     description:
-      "We stay ahead of the curve, bringing you the latest tech as soon as it hits the market — from concept to your doorstep.",
-    color: "text-secondary",
-    bg: "bg-secondary/10",
+      "We collaborate directly with weaving clusters in Tangail, Sonargaon, and Sirajganj to preserve authentic Jamdani and handloom traditions with fair artisan wages.",
   },
   {
-    icon: Heart,
-    title: "Customer Love",
+    title: "Architectural Tailoring",
     description:
-      "Our 24/7 support team is always on standby. Your satisfaction isn't just a goal — it's our obsession.",
-    color: "text-error",
-    bg: "bg-error/10",
+      "Our Dhaka atelier refines every pattern through multiple fittings, ensuring clean drapes, reinforced seams, and effortless movement from morning to evening.",
   },
   {
-    icon: Globe,
-    title: "Global Reach",
+    title: "Uncompromising Quality",
     description:
-      "Shipping to over 50 countries, we connect you with the world's best tech no matter where you are.",
-    color: "text-info",
-    bg: "bg-info/10",
+      "Each piece undergoes a 12-point garment inspection for colorfastness, stitch density, and fabric finish before it leaves our studio.",
   },
   {
-    icon: Truck,
-    title: "Fast Delivery",
+    title: "Effortless Size Exchanges",
     description:
-      "Lightning-fast logistics ensure your order arrives on time, every time — with real-time tracking all the way.",
-    color: "text-success",
-    bg: "bg-success/10",
+      "Finding your ideal fit should be worry-free. We offer a seamless 7-day size exchange and return policy across all collections.",
   },
   {
-    icon: Target,
-    title: "Best Prices",
+    title: "Nationwide Doorstep Delivery",
     description:
-      "We negotiate directly with brands so you always get fair, competitive prices with transparent no-hidden-fee billing.",
-    color: "text-warning",
-    bg: "bg-warning/10",
+      "From express dispatch inside Dhaka to reliable courier coverage across all 64 districts, with Cash on Delivery and Mobile Banking options.",
   },
 ];
 
-const team = [
+const defaultMilestones = [
   {
-    name: "Alex Rivera",
-    role: "Founder & CEO",
-    bio: "10+ years in consumer electronics. Former product lead at a Fortune 500 tech company.",
-    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Alex&backgroundColor=b6e3f4",
+    year: "2020",
+    title: "The Atelier Begins in Dhaka",
+    description:
+      "Founded with a capsule collection of 12 handloom Panjabis and breathable everyday Kurtis crafted alongside five master tailors.",
   },
   {
-    name: "Priya Nair",
-    role: "Head of Product",
-    bio: "Design thinker & UX obsessive. Believes great products should feel effortless.",
-    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Priya&backgroundColor=ffd5dc",
+    year: "2022",
+    title: "Direct Weaver Partnerships",
+    description:
+      "Established direct partnerships with weaving communities in Tangail and Narayanganj, eliminating middlemen and elevating textile purity.",
   },
   {
-    name: "Jordan Kim",
-    role: "CTO",
-    bio: "Full-stack engineer with a love for performance and developer experience.",
-    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Jordan&backgroundColor=c0aede",
+    year: "2024",
+    title: "Contemporary Ready-to-Wear Expansion",
+    description:
+      "Introduced women's Festive Sarees, tailored linen co-ords, and children's organic cotton wear, serving over 30,000 customers nationwide.",
   },
   {
-    name: "Sofia Chen",
-    role: "Head of Partnerships",
-    bio: "Built relationships with 120+ global brands. Fluent in five languages.",
-    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Sofia&backgroundColor=d1f4d1",
-  },
-  {
-    name: "Marcus Lee",
-    role: "Lead Designer",
-    bio: "Crafts pixel-perfect interfaces and occasionally obsesses over color palettes.",
-    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Marcus&backgroundColor=ffdfbf",
-  },
-  {
-    name: "Aisha Osman",
-    role: "Customer Success",
-    bio: "Champion of the customer. Resolves problems before they become problems.",
-    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Aisha&backgroundColor=b6e3f4",
+    year: "Today",
+    title: "A Modern Bangladeshi Wardrobe",
+    description:
+      "Continuing to blend timeless heritage craftsmanship with minimalist modern design for discerning dressers across Bangladesh.",
   },
 ];
 
-const milestones = [
-  { year: "2019", event: "Deshio founded in a small garage with 50 products" },
-  { year: "2020", event: "Expanded to 1,000 SKUs and launched mobile-first website" },
-  { year: "2021", event: "Crossed 10,000 customers and partnered with 30 brands" },
-  { year: "2022", event: "Opened first fulfilment centre and hit ৳1M revenue" },
-  { year: "2023", event: "Launched international shipping to 50+ countries" },
-  { year: "2024", event: "50,000+ happy customers and 5,000+ products and counting" },
-];
+const pillarIcons = [Layers, Sparkles, Compass, ShieldCheck, Heart, Truck];
+const statIcons = [Users, Sparkles, Truck, Award];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const settings = await getSiteSettings();
+
+  const heroBadge = settings?.aboutHeroBadge || "Our Heritage & Philosophy";
+  const heroTitle = settings?.aboutHeroTitle || "Rooted in Craft. Tailored for Today.";
+  const heroSubtitle =
+    settings?.aboutHeroSubtitle ||
+    "Deshio was born from a simple conviction: everyday clothing in Bangladesh should honor our rich textile heritage while embracing clean, contemporary tailoring and breathable comfort.";
+
+  const storyBadge = settings?.aboutStoryBadge || "The Deshio Standard";
+  const storyTitle =
+    settings?.aboutStoryTitle || "Every Thread Tells a Story of Patience & Precision";
+  const storyP1 =
+    settings?.aboutStoryParagraph1 ||
+    "In an era of disposable fast fashion, we choose a slower, more deliberate path. Our design studio in Dhaka works hand-in-hand with generational weavers across rural Bangladesh to develop slow textiles that soften with every wash.";
+  const storyP2 =
+    settings?.aboutStoryParagraph2 ||
+    "Whether it is a festive embroidered Panjabi, a hand-woven Jamdani saree, or an everyday relaxed linen shirt, every silhouette is proportioned for effortless grace and lasting durability.";
+
+  const stats = settings?.aboutStats?.length ? settings.aboutStats : defaultStats;
+  const pillars = settings?.aboutPillars?.length ? settings.aboutPillars : defaultPillars;
+  const milestones = settings?.aboutMilestones?.length
+    ? settings.aboutMilestones
+    : defaultMilestones;
+
   return (
-    <div className="bg-base-100">
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden py-24 lg:py-32">
-        <div className="absolute inset-0 page-hero-bg" />
-        <div className="relative mx-auto max-w-4xl px-6 text-center">
-          <div className="inline-flex items-center gap-2 badge badge-primary badge-lg px-4 py-3 mb-6 shadow-sm">
-            <Zap className="w-4 h-4" />
-            Est. 2019 · Silicon Valley
-          </div>
-          <h1 className="text-5xl sm:text-6xl font-black text-base-content leading-tight mb-6">
-            We&apos;re on a mission to make{" "}
-            <span className="text-primary">great tech</span> accessible to
-            everyone
+    <div className="min-h-screen bg-stone-50/30">
+      {/* ── Editorial Hero ──────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-stone-900 text-stone-100 py-20 sm:py-28 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <span className="inline-block text-[11px] uppercase tracking-[0.25em] text-amber-400 font-semibold mb-4">
+            {heroBadge}
+          </span>
+          <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-normal tracking-tight leading-tight mb-6">
+            {heroTitle}
           </h1>
-          <p className="text-lg text-base-content/60 max-w-2xl mx-auto leading-relaxed">
-            Deshio started with a simple belief: buying electronics online
-            should be fast, trustworthy, and enjoyable. Today, we serve 50,000+
-            customers across 50+ countries.
+          <p className="text-stone-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-light mb-10">
+            {heroSubtitle}
           </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link
+              href="/products"
+              className="px-7 py-3.5 rounded-full bg-white text-stone-900 text-xs font-semibold uppercase tracking-widest hover:bg-stone-100 transition-colors"
+            >
+              Explore the Collection
+            </Link>
+            <Link
+              href="/contact"
+              className="px-7 py-3.5 rounded-full border border-stone-700 text-stone-200 text-xs font-semibold uppercase tracking-widest hover:bg-stone-800 transition-colors"
+            >
+              Visit Our Studio
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* ── Stats ────────────────────────────────────────────────────── */}
-      <section className="py-16 border-y border-base-200 bg-base-200/40">
-        <div className="mx-auto max-w-5xl px-6">
+      {/* ── Key Figures Strip ───────────────────────────────────────────── */}
+      <section className="border-b border-stone-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map(({ value, label, icon: Icon }) => (
-              <div key={label} className="text-center">
-                <div className="flex justify-center mb-3">
-                  <div className="p-3 rounded-2xl bg-primary/10">
-                    <Icon className="w-6 h-6 text-primary" />
+            {stats.map(({ value, label }, idx) => {
+              const Icon = statIcons[idx % statIcons.length];
+              return (
+                <div key={idx} className="text-center">
+                  <div className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200/60 flex items-center justify-center mx-auto mb-3">
+                    <Icon className="w-4 h-4 text-amber-800" />
                   </div>
+                  <p className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+                    {value}
+                  </p>
+                  <p className="text-xs text-stone-500 mt-1 tracking-wide">{label}</p>
                 </div>
-                <div className="text-4xl font-black text-base-content">
-                  {value}
-                </div>
-                <div className="text-sm text-base-content/50 mt-1">{label}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ── Our Story ────────────────────────────────────────────────── */}
-      <section className="py-20 mx-auto max-w-6xl px-6">
-        <div className="grid lg:grid-cols-2 gap-14 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 text-primary font-semibold text-sm uppercase tracking-widest">
-              <span className="h-px w-8 bg-primary" />
-              Our Story
-            </div>
-            <h2 className="text-4xl font-black text-base-content leading-tight">
-              From a garage startup to a global electronics marketplace
+      {/* ── Craftsmanship Narrative ─────────────────────────────────────── */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-12 gap-12 items-center">
+          <div className="lg:col-span-6 space-y-5">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-amber-800 font-semibold">
+              {storyBadge}
+            </span>
+            <h2 className="font-serif text-2xl sm:text-4xl text-stone-900 tracking-tight leading-snug">
+              {storyTitle}
             </h2>
-            <div className="space-y-4 text-base-content/60 leading-relaxed">
-              <p>
-                It started in 2019 when our founder Alex Rivera got tired of
-                navigating dozens of sketchy reseller sites just to find a
-                decent pair of headphones. He built a better alternative — a
-                clean, curated store focused on genuine products and honest
-                pricing.
-              </p>
-              <p>
-                Word spread fast. Within a year Deshio had grown from 50
-                products to over a thousand, and from one fulfilment shelf to a
-                dedicated warehouse. We brought on people who care about the
-                same things we do: quality, speed, and customers who actually
-                come back.
-              </p>
-              <p>
-                Today we partner with 120+ brands worldwide and ship to 50+
-                countries — but we still believe every order matters, and every
-                customer deserves to feel like they got the best deal.
-              </p>
-            </div>
+            <p className="text-stone-600 text-sm sm:text-base leading-relaxed font-light">
+              {storyP1}
+            </p>
+            <p className="text-stone-600 text-sm sm:text-base leading-relaxed font-light">
+              {storyP2}
+            </p>
           </div>
 
-          {/* Timeline */}
-          <div className="space-y-0">
-            {milestones.map((m, i) => (
-              <div key={m.year} className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-xs font-black shrink-0">
-                    {m.year.slice(2)}
-                  </div>
-                  {i < milestones.length - 1 && (
-                    <div className="w-px flex-1 bg-base-300 my-1" />
-                  )}
-                </div>
-                <div className="pb-6 pt-2 min-w-0">
-                  <p className="text-xs font-bold text-primary uppercase tracking-wider">
-                    {m.year}
-                  </p>
-                  <p className="text-sm text-base-content/70 mt-0.5">
-                    {m.event}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Values ───────────────────────────────────────────────────── */}
-      <section className="py-20 bg-base-200/40 border-y border-base-200">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 text-primary font-semibold text-sm uppercase tracking-widest mb-4">
-              <span className="h-px w-8 bg-primary" />
-              What Drives Us
-              <span className="h-px w-8 bg-primary" />
-            </div>
-            <h2 className="text-3xl font-black text-base-content">
-              Our core values
-            </h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {values.map(({ icon: Icon, title, description, color, bg }) => (
-              <div
-                key={title}
-                className="card bg-base-100 border border-base-200 p-6 hover:shadow-md transition-shadow"
-              >
-                <div className={`w-12 h-12 rounded-2xl ${bg} flex items-center justify-center mb-4`}>
-                  <Icon className={`w-6 h-6 ${color}`} />
-                </div>
-                <h3 className="font-bold text-base-content mb-2">{title}</h3>
-                <p className="text-sm text-base-content/60 leading-relaxed">
-                  {description}
+          <div className="lg:col-span-6 grid grid-cols-2 gap-4">
+            <div className="rounded-2xl bg-stone-900 text-stone-100 p-6 sm:p-8 flex flex-col justify-between min-h-[210px]">
+              <span className="text-xs uppercase tracking-widest text-amber-400">
+                01 / Material
+              </span>
+              <div>
+                <h3 className="font-serif text-xl mb-1.5">100% Breathable</h3>
+                <p className="text-xs text-stone-400 font-light leading-relaxed">
+                  Pure cotton, linen, and artisanal silk blends selected for all-day comfort.
                 </p>
               </div>
-            ))}
+            </div>
+            <div className="rounded-2xl bg-amber-50 border border-amber-200/70 text-stone-900 p-6 sm:p-8 flex flex-col justify-between min-h-[210px]">
+              <span className="text-xs uppercase tracking-widest text-amber-900">
+                02 / Craft
+              </span>
+              <div>
+                <h3 className="font-serif text-xl mb-1.5">Small-Batch Cuts</h3>
+                <p className="text-xs text-stone-600 font-light leading-relaxed">
+                  Produced in limited runs to ensure meticulous tailoring and zero textile waste.
+                </p>
+              </div>
+            </div>
+            <div className="col-span-2 rounded-2xl bg-white border border-stone-200 p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-[11px] uppercase tracking-widest text-stone-400 font-semibold">
+                  03 / Community
+                </span>
+                <h3 className="font-serif text-xl text-stone-900 mt-1">
+                  Supporting Local Weaving Clusters
+                </h3>
+                <p className="text-xs text-stone-500 mt-1 font-light">
+                  Fair-trade partnerships across Tangail, Sonargaon, and Sirajganj.
+                </p>
+              </div>
+              <Link
+                href="/gender/women"
+                className="shrink-0 px-5 py-2.5 rounded-full bg-stone-900 text-white text-xs font-semibold uppercase tracking-wider hover:bg-stone-800 transition-colors text-center"
+              >
+                View Handlooms
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Team ─────────────────────────────────────────────────────── */}
-      <section className="py-20 mx-auto max-w-6xl px-6">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 text-primary font-semibold text-sm uppercase tracking-widest mb-4">
-            <span className="h-px w-8 bg-primary" />
-            The People
-            <span className="h-px w-8 bg-primary" />
+      {/* ── Pillars ─────────────────────────────────────────────────────── */}
+      <section className="py-16 sm:py-20 bg-white border-y border-stone-200/80 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-amber-800 font-semibold">
+              Why Choose {settings?.siteName || "Deshio"}
+            </span>
+            <h2 className="font-serif text-2xl sm:text-4xl text-stone-900 mt-2">
+              Pillars of Our House
+            </h2>
           </div>
-          <h2 className="text-3xl font-black text-base-content">
-            Meet the team
-          </h2>
-          <p className="text-base-content/50 mt-2 max-w-xl mx-auto text-sm">
-            A small, passionate group of humans who obsess over products,
-            customers, and really good coffee.
-          </p>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {team.map((member) => (
-            <div
-              key={member.name}
-              className="card bg-base-100 border border-base-200 p-6 text-center hover:shadow-md transition-shadow group"
-            >
-              <div className="avatar mb-4 flex justify-center">
-                <div className="w-20 h-20 rounded-full ring ring-base-300 ring-offset-2 ring-offset-base-100 group-hover:ring-primary transition-all">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={member.avatar} alt={member.name} />
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {pillars.map(({ title, description }, idx) => {
+              const Icon = pillarIcons[idx % pillarIcons.length];
+              return (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-stone-200/80 bg-stone-50/40 p-6 hover:border-stone-300 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-stone-900 text-white flex items-center justify-center mb-4">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-serif text-lg text-stone-900 mb-2">{title}</h3>
+                  <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-light">
+                    {description}
+                  </p>
                 </div>
-              </div>
-              <h3 className="font-bold text-base-content">{member.name}</h3>
-              <p className="text-xs text-primary font-semibold mt-0.5 mb-2">
-                {member.role}
-              </p>
-              <p className="text-sm text-base-content/55 leading-relaxed">
-                {member.bio}
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Journey Timeline ────────────────────────────────────────────── */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+        <div className="text-center mb-12">
+          <span className="text-[11px] uppercase tracking-[0.2em] text-amber-800 font-semibold">
+            Chronicle
+          </span>
+          <h2 className="font-serif text-2xl sm:text-4xl text-stone-900 mt-2">
+            Our Journey So Far
+          </h2>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-6">
+          {milestones.map((m, idx) => (
+            <div
+              key={idx}
+              className="rounded-2xl bg-white border border-stone-200 p-6 shadow-2xs"
+            >
+              <span className="inline-block px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold mb-3">
+                {m.year}
+              </span>
+              <h3 className="font-serif text-lg text-stone-900 mb-1.5">{m.title}</h3>
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-light">
+                {m.description}
               </p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* ── CTA ──────────────────────────────────────────────────────── */}
-      <section className="py-20 bg-gradient-to-r from-primary to-sky-400">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <Headphones className="w-12 h-12 text-white/80 mx-auto mb-4" />
-          <h2 className="text-3xl font-black text-white mb-3">
-            Ready to shop the best in tech?
-          </h2>
-          <p className="text-white/75 mb-8 max-w-xl mx-auto">
-            Join 50,000+ customers who trust Deshio for their electronics needs.
-            Fast shipping, genuine products, unbeatable prices.
-          </p>
-          <Link
-            href="/products"
-            className="btn btn-lg bg-white text-primary hover:bg-white/90 border-0 shadow-lg"
-          >
-            Explore Products
-          </Link>
         </div>
       </section>
     </div>

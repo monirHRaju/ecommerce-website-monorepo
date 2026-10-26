@@ -33,14 +33,31 @@ export default function RelatedProducts({ categoryId, excludeId }: Props) {
   if (!isLoading && (!data || data.length === 0)) return null;
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black text-base-content">Related Products</h2>
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-stone-900">
+            You May Also Admire
+          </h2>
+          <p className="text-xs text-stone-500 font-light mt-0.5">
+            Curated complements from the same design house.
+          </p>
+        </div>
         <div className="flex gap-2">
-          <button onClick={() => scroll("left")} className="btn btn-sm btn-ghost btn-circle border border-base-300">
+          <button
+            type="button"
+            onClick={() => scroll("left")}
+            aria-label="Scroll left"
+            className="w-9 h-9 rounded-full border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 flex items-center justify-center transition-colors shadow-xs"
+          >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button onClick={() => scroll("right")} className="btn btn-sm btn-ghost btn-circle border border-base-300">
+          <button
+            type="button"
+            onClick={() => scroll("right")}
+            aria-label="Scroll right"
+            className="w-9 h-9 rounded-full border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 flex items-center justify-center transition-colors shadow-xs"
+          >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -48,16 +65,16 @@ export default function RelatedProducts({ categoryId, excludeId }: Props) {
 
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory"
+        className="flex gap-5 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory"
       >
         {isLoading
           ? [...Array(4)].map((_, i) => (
-              <div key={i} className="w-56 shrink-0 snap-start">
+              <div key={i} className="w-64 shrink-0 snap-start">
                 <ProductSkeleton />
               </div>
             ))
           : data!.map((product) => (
-              <div key={product._id} className="w-56 shrink-0 snap-start">
+              <div key={product._id} className="w-64 shrink-0 snap-start">
                 <ProductCard product={product} />
               </div>
             ))}

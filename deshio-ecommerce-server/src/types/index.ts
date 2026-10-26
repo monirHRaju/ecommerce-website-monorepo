@@ -41,9 +41,22 @@ export interface ICategory {
 }
 
 // ─── Product ─────────────────────────────────────────────────────────────────
+export type Gender = 'men' | 'women' | 'kids' | 'unisex';
+
+export interface IVariant {
+  size: string;
+  color: string;
+  colorHex?: string;
+  sku: string;
+  stock: number;
+  /** Optional price override for this variant; falls back to product.price */
+  priceOverride?: number;
+}
+
 export interface IProduct {
   _id?: Types.ObjectId;
   title: string;
+  slug?: string;
   description: string;
   images?: string[];
   price: number;
@@ -54,10 +67,20 @@ export interface IProduct {
   tags?: string[];
   rating?: number;
   reviewCount?: number;
+  /** Total stock. Derived from variants when variants exist. */
   stock: number;
   sold?: number;
+  // Fashion attributes
+  gender?: Gender;
+  material?: string;
+  fit?: string;
+  careInstructions?: string;
+  sizeGuide?: string;
+  variants?: IVariant[];
   specifications?: Map<string, string>;
   createdBy: Types.ObjectId | string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // ─── Review ──────────────────────────────────────────────────────────────────
@@ -72,9 +95,13 @@ export interface IReview {
 
 // ─── Cart ────────────────────────────────────────────────────────────────────
 export interface ICartItem {
+  _id?: Types.ObjectId;
   productId: Types.ObjectId;
   quantity: number;
   price: number;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 export interface ICart {
@@ -94,6 +121,9 @@ export interface IOrderItem {
   price: number;
   title: string;
   image: string;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 export interface IOrder {
@@ -186,4 +216,79 @@ declare global {
   namespace Express {
     interface User extends JwtPayload {}
   }
+}
+
+// ─── Site Settings & SEO ──────────────────────────────────────────────────────
+export interface ISiteSettings {
+  _id?: Types.ObjectId;
+  siteName: string;
+  siteTitle: string;
+  titleTemplate: string;
+  metaDescription: string;
+  metaKeywords: string[];
+  canonicalUrl: string;
+  ogImage: string;
+  twitterHandle: string;
+  googleSiteVerification?: string;
+  bingSiteVerification?: string;
+  indexSite: boolean;
+  contactEmail?: string;
+  contactPhone?: string;
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    youtube?: string;
+    pinterest?: string;
+    tiktok?: string;
+    whatsapp?: string;
+    messenger?: string;
+  };
+  whatsappSupport?: string;
+  messengerSupport?: string;
+  showFloatingSupport?: boolean;
+
+  // ── Branding & General ──
+  logoUrl?: string;
+  tagline?: string;
+  announcementText?: string;
+  showAnnouncement?: boolean;
+
+  // ── Contact & Atelier ──
+  address?: string;
+  showroomHours?: string;
+  helplineHours?: string;
+
+  // ── Footer ──
+  footerDescription?: string;
+  copyrightText?: string;
+
+  // ── Contact Page Content ──
+  contactPageTitle?: string;
+  contactPageSubtitle?: string;
+  contactFaqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
+
+  // ── About Page Content ──
+  aboutHeroBadge?: string;
+  aboutHeroTitle?: string;
+  aboutHeroSubtitle?: string;
+  aboutStoryBadge?: string;
+  aboutStoryTitle?: string;
+  aboutStoryParagraph1?: string;
+  aboutStoryParagraph2?: string;
+  aboutStats?: Array<{
+    value: string;
+    label: string;
+  }>;
+  aboutPillars?: Array<{
+    title: string;
+    description: string;
+  }>;
+  aboutMilestones?: Array<{
+    year: string;
+    title: string;
+    description: string;
+  }>;
 }

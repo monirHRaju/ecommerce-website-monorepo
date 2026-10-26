@@ -1,12 +1,11 @@
-export const formatPrice = (price: number, currency = "BDT"): string => {
-  return new Intl.NumberFormat("bn-BD", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
+export const formatPrice = (price: number): string => {
+  const num = Number(price) || 0;
+  return `৳${num.toLocaleString("en-US", {
+    minimumFractionDigits: num % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
-  }).format(price);
+  })}`;
 };
 
 export const discountedPrice = (price: number, discount: number): number => {
-  return price - (price * discount) / 100;
+  return price - (price * (discount || 0)) / 100;
 };

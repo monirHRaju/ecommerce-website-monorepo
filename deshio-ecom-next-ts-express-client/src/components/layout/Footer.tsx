@@ -1,193 +1,163 @@
-"use client";
-
-import {
-  Facebook,
-  Github,
-  Instagram,
-  Mail,
-  MapPin,
-  Phone,
-  Send,
-  Twitter,
-} from "lucide-react";
+import React from "react";
 import Link from "next/link";
-import { useState } from "react";
+import { siteConfig } from "@/lib/site";
+import { getSiteSettings } from "@/lib/settings";
+import NewsletterForm from "./NewsletterForm";
+import { ShieldCheck, Truck, RefreshCw, Sparkles } from "lucide-react";
 
-const quickLinks = [
-  { label: "Home", href: "/" },
-  { label: "Products", href: "/products" },
-  { label: "Track Order", href: "/track-order" },
-  { label: "About Us", href: "/about" },
-  { label: "Contact", href: "/contact" },
-  { label: "Blog", href: "/blog" },
-];
+export default async function Footer() {
+  const settings = await getSiteSettings();
 
-const categories = [
-  { label: "Smartphones", href: "/products?category=smartphones" },
-  { label: "Laptops", href: "/products?category=laptops" },
-  { label: "Headphones", href: "/products?category=headphones" },
-  { label: "Cameras", href: "/products?category=cameras" },
-  { label: "Accessories", href: "/products?category=accessories" },
-];
+  const brandName = settings?.siteName || siteConfig.shortName;
+  const brandTagline = settings?.tagline || "Haute & Contemporary";
+  const footerDesc = settings?.footerDescription || siteConfig.description;
+  const contactAddress = settings?.address || siteConfig.contact.address;
+  const contactPhone = settings?.contactPhone || siteConfig.contact.phone;
+  const contactEmail = settings?.contactEmail || siteConfig.contact.email;
 
-const socials = [
-  { icon: Facebook, href: "#", label: "Facebook" },
-  { icon: Twitter, href: "#", label: "Twitter" },
-  { icon: Instagram, href: "#", label: "Instagram" },
-  { icon: Github, href: "#", label: "GitHub" },
-];
-
-export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setEmail("");
-    }
-  };
+  const currentYear = new Date().getFullYear();
+  const copyright = (
+    settings?.copyrightText || `© {year} ${brandName}. All rights reserved.`
+  ).replace("{year}", String(currentYear));
 
   return (
-    <footer className="bg-base-200 border-t border-base-300">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Brand */}
-          <div className="space-y-4">
-            <Link href="/">
-              <img src="/deshio_logo.svg" alt="Deshio" className="h-25" />
+    <footer className="bg-stone-50 border-t border-stone-200">
+      {/* Editorial Trust Ribbon */}
+      <div className="border-b border-stone-200/80 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <Sparkles className="w-5 h-5 text-amber-700 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">
+                  Premium Fabrics
+                </p>
+                <p className="text-xs text-stone-500">100% genuine quality</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <Truck className="w-5 h-5 text-stone-800 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">
+                  Swift Delivery
+                </p>
+                <p className="text-xs text-stone-500">Inside & outside Dhaka</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <RefreshCw className="w-5 h-5 text-stone-800 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">
+                  Hassle-Free Exchange
+                </p>
+                <p className="text-xs text-stone-500">7 days trial period</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-stone-800 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-900">
+                  Secure Checkout
+                </p>
+                <p className="text-xs text-stone-500">COD & Mobile Banking</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
+          {/* Brand Column (4 cols) */}
+          <div className="lg:col-span-4 space-y-4">
+            <Link href="/" className="inline-block">
+              {settings?.logoUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={settings.logoUrl}
+                  alt={brandName}
+                  className="h-9 w-auto max-w-[160px] object-contain mb-2"
+                />
+              ) : null}
+              <span className="font-serif text-2xl font-bold tracking-tight text-stone-900">
+                {brandName}
+              </span>
+              <span className="block text-[10px] tracking-widest uppercase font-semibold text-stone-500">
+                {brandTagline}
+              </span>
             </Link>
-            <p className="text-sm leading-relaxed text-base-content/60">
-              Your one-stop destination for the latest electronics and tech
-              gadgets. Quality products at unbeatable prices.
+            <p className="text-sm text-stone-600 leading-relaxed font-light max-w-sm">
+              {footerDesc}
             </p>
-            {/* Socials */}
-            <div className="flex items-center gap-3 pt-1">
-              {socials.map(({ icon: Icon, href, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-base-300 text-base-content/60 transition-all hover:bg-primary hover:text-white hover:scale-110"
-                >
-                  <Icon className="h-4 w-4" />
-                </a>
-              ))}
+            <div className="pt-2 text-xs text-stone-500 space-y-1">
+              <p>{contactAddress}</p>
+              <p>Helpline: {contactPhone}</p>
+              <p>Email: {contactEmail}</p>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-base-content">
-              Quick Links
-            </h3>
-            <ul className="space-y-2.5">
-              {quickLinks.map((link) => (
-                <li key={link.href}>
+          {/* Collections Column (2 cols) */}
+          <div className="lg:col-span-2 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-stone-900">
+              Collections
+            </p>
+            <ul className="space-y-2 text-sm">
+              {siteConfig.footerLinks.collections.map((item) => (
+                <li key={item.label}>
                   <Link
-                    href={link.href}
-                    className="flex items-center gap-1.5 text-sm text-base-content/60 transition-colors hover:text-primary"
+                    href={item.href}
+                    className="text-stone-600 hover:text-stone-900 transition-colors"
                   >
-                    <span className="h-1 w-1 rounded-full bg-primary opacity-0 transition-opacity group-hover:opacity-100" />
-                    {link.label}
+                    {item.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Categories */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-base-content">
-              Categories
-            </h3>
-            <ul className="space-y-2.5">
-              {categories.map((cat) => (
-                <li key={cat.href}>
+          {/* Customer Care Column (2 cols) */}
+          <div className="lg:col-span-2 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-stone-900">
+              Customer Care
+            </p>
+            <ul className="space-y-2 text-sm">
+              {siteConfig.footerLinks.customerCare.map((item) => (
+                <li key={item.label}>
                   <Link
-                    href={cat.href}
-                    className="text-sm text-base-content/60 transition-colors hover:text-primary"
+                    href={item.href}
+                    className="text-stone-600 hover:text-stone-900 transition-colors"
                   >
-                    {cat.label}
+                    {item.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Contact + Newsletter */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-base-content">
-              Stay Connected
-            </h3>
-
-            {/* Contact Info */}
-            <ul className="space-y-2.5">
-              <li className="flex items-start gap-2.5 text-sm text-base-content/60">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                123 Tech Street, Silicon Valley, CA
-              </li>
-              <li className="flex items-center gap-2.5 text-sm text-base-content/60">
-                <Phone className="h-4 w-4 shrink-0 text-primary" />
-                +1 (555) 000-1234
-              </li>
-              <li className="flex items-center gap-2.5 text-sm text-base-content/60">
-                <Mail className="h-4 w-4 shrink-0 text-primary" />
-                hello@deshio.com
-              </li>
-            </ul>
-
-            {/* Newsletter */}
-            <div className="pt-2">
-              <p className="mb-2 text-xs text-base-content/50">
-                Subscribe for deals & updates
-              </p>
-              {subscribed ? (
-                <div className="rounded-lg bg-primary/10 px-4 py-2.5 text-center text-sm font-medium text-primary">
-                  Thanks for subscribing!
-                </div>
-              ) : (
-                <form onSubmit={handleSubscribe} className="flex gap-2">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    className="input input-sm input-bordered flex-1 min-w-0 focus:input-primary"
-                  />
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-sm btn-square"
-                    aria-label="Subscribe"
-                  >
-                    <Send className="h-4 w-4" />
-                  </button>
-                </form>
-              )}
-            </div>
+          {/* Newsletter Column (4 cols) */}
+          <div className="lg:col-span-4 space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-stone-900">
+              The Fashion Edit
+            </p>
+            <p className="text-xs text-stone-600 leading-relaxed font-light">
+              Subscribe to receive preview access to limited seasonal drops, private sales, and sartorial inspirations.
+            </p>
+            <NewsletterForm />
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="flex flex-col items-center justify-between gap-3 border-t border-base-300 py-5 sm:flex-row">
-          <p className="text-xs text-base-content/50">
-            &copy; {new Date().getFullYear()} Deshio. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4">
-            <Link
-              href="#"
-              className="text-xs text-base-content/50 hover:text-primary transition-colors"
-            >
-              Privacy Policy
+        <div className="mt-12 pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
+          <p>{copyright}</p>
+          <div className="flex gap-6">
+            <Link href="/about" className="hover:text-stone-900 transition-colors">
+              About Us
             </Link>
-            <Link
-              href="#"
-              className="text-xs text-base-content/50 hover:text-primary transition-colors"
-            >
-              Terms of Service
+            <Link href="/track-order" className="hover:text-stone-900 transition-colors">
+              Track Order
+            </Link>
+            <Link href="/contact" className="hover:text-stone-900 transition-colors">
+              Contact
             </Link>
           </div>
         </div>

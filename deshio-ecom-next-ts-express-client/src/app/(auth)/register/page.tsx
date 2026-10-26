@@ -9,7 +9,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-import { toast } from "react-hot-toast";
+import { toast } from "@/context/ToastContext";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 
