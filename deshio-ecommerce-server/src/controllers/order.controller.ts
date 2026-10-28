@@ -1,246 +1,71 @@
 import { Request, Response } from 'express';
 import Cart from '../models/cart.model';
-import Coupon from '../models/coupon.model';
-import DeliveryZone from '../models/deliveryZone.model';
 import Order from '../models/order.model';
-import PaymentMethod from '../models/paymentMethod.model';
 import Product from '../models/product.model';
 import User from '../models/user.model';
-import { IOrderItem, IVariant } from '../types';
+import { placeOrder, RawOrderItemInput } from '../services/order.service';
+import { JwtPayload } from '../types';
 import AppError from '../utils/AppError';
 import asyncHandler from '../utils/asyncHandler';
-import { createNotification, LOW_STOCK_THRESHOLD } from '../utils/notificationService';
+import { sendGuestAccountCredentialsEmail } from '../utils/email';
+import { createNotification } from '../utils/notificationService';
+import { generateSimplePassword, normalizeBdPhone } from '../utils/phone';
 import sendResponse from '../utils/sendResponse';
+import { generateTokens } from './auth.controller';
 
-// POST /api/v1/orders  { shippingAddress, paymentMethod, deliveryZoneId?, couponCode?, orderNote? }
+// POST /api/v1/orders  (authenticated user)
 const createOrder = asyncHandler(async (req: Request, res: Response) => {
   const {
     shippingAddress,
     phone,
-    paymentMethod = 'card',
+    paymentMethod = 'cash_on_delivery',
     deliveryZoneId,
     couponCode,
     orderNote,
     mobilePayment,
+    items: bodyItems,
   } = req.body;
+
   if (!shippingAddress) throw new AppError('Shipping address is required', 400);
   if (!phone) throw new AppError('Mobile number is required', 400);
 
-  // Require verified email to place orders
-  const buyer = await User.findById(req.user!.id);
-  if (!buyer?.isVerified) {
-    throw new AppError('Please verify your email address before placing orders.', 403);
-  }
+  const normalizedPhone = normalizeBdPhone(phone) || String(phone).trim();
 
-  const cart = await Cart.findOne({ userId: req.user!.id }).populate<{
-    items: {
-      productId: any;
-      quantity: number;
-      price: number;
-      size?: string;
-      color?: string;
-      sku?: string;
-    }[];
-  }>('items.productId');
+  const cart = await Cart.findOne({ userId: req.user!.id });
+  const rawItems: RawOrderItemInput[] =
+    cart && cart.items.length > 0
+      ? cart.items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          size: i.size,
+          color: i.color,
+          sku: i.sku,
+        }))
+      : Array.isArray(bodyItems)
+      ? bodyItems
+      : [];
 
-  if (!cart || cart.items.length === 0) throw new AppError('Cart is empty', 400);
+  if (rawItems.length === 0) throw new AppError('Cart is empty', 400);
 
-  // Build order items and atomically decrement stock (with rollback if a later item fails)
-  const orderItems: IOrderItem[] = [];
-  const decremented: { productId: any; sku?: string; quantity: number }[] = [];
-
-  try {
-    for (const item of cart.items) {
-      const product = item.productId;
-      if (!product) throw new AppError('Product not found in cart', 404);
-
-      const variants: IVariant[] = product.variants ?? [];
-      let matchedVariant: IVariant | undefined;
-
-      if (variants.length > 0) {
-        matchedVariant =
-          (item.sku && variants.find((v) => v.sku === item.sku)) ||
-          variants.find(
-            (v) =>
-              (!item.size || v.size.toLowerCase() === item.size.toLowerCase()) &&
-              (!item.color || v.color.toLowerCase() === item.color.toLowerCase())
-          ) ||
-          variants.find((v) => v.stock >= item.quantity);
-
-        if (!matchedVariant) {
-          throw new AppError(`Selected option for "${product.title}" is out of stock`, 400);
-        }
-
-        const updated = await Product.findOneAndUpdate(
-          {
-            _id: product._id,
-            'variants.sku': matchedVariant.sku,
-            'variants.stock': { $gte: item.quantity },
-          },
-          {
-            $inc: {
-              'variants.$.stock': -item.quantity,
-              stock: -item.quantity,
-              sold: item.quantity,
-            },
-          },
-          { new: true }
-        );
-
-        if (!updated) {
-          throw new AppError(
-            `Insufficient stock for "${product.title}" (${matchedVariant.size} / ${matchedVariant.color})`,
-            400
-          );
-        }
-        decremented.push({ productId: product._id, sku: matchedVariant.sku, quantity: item.quantity });
-      } else {
-        const updated = await Product.findOneAndUpdate(
-          { _id: product._id, stock: { $gte: item.quantity } },
-          { $inc: { stock: -item.quantity, sold: item.quantity } },
-          { new: true }
-        );
-        if (!updated) {
-          throw new AppError(`Insufficient stock for "${product.title}"`, 400);
-        }
-        decremented.push({ productId: product._id, quantity: item.quantity });
-      }
-
-      orderItems.push({
-        productId: product._id,
-        quantity: item.quantity,
-        price: item.price,
-        title: product.title,
-        image: product.images?.[0] || '',
-        size: matchedVariant?.size ?? item.size,
-        color: matchedVariant?.color ?? item.color,
-        sku: matchedVariant?.sku ?? item.sku,
-      });
-    }
-  } catch (err) {
-    // Rollback any decrements already applied
-    for (const d of decremented) {
-      if (d.sku) {
-        await Product.updateOne(
-          { _id: d.productId, 'variants.sku': d.sku },
-          { $inc: { 'variants.$.stock': d.quantity, stock: d.quantity, sold: -d.quantity } }
-        );
-      } else {
-        await Product.updateOne(
-          { _id: d.productId },
-          { $inc: { stock: d.quantity, sold: -d.quantity } }
-        );
-      }
-    }
-    throw err;
-  }
-
-  const itemsTotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-
-  // ── Delivery zone ──────────────────────────────────────────────────────────
-  let deliveryCharge = 0;
-  let resolvedDeliveryZoneId: any = undefined;
-  if (deliveryZoneId) {
-    const zone = await DeliveryZone.findById(deliveryZoneId);
-    if (!zone || !zone.isActive) throw new AppError('Selected delivery zone is unavailable', 400);
-    deliveryCharge = zone.charge;
-    resolvedDeliveryZoneId = zone._id;
-  }
-
-  // ── Coupon ─────────────────────────────────────────────────────────────────
-  let couponDiscount = 0;
-  let appliedCouponCode: string | undefined;
-  if (couponCode) {
-    const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim() });
-    if (!coupon || !coupon.isActive) throw new AppError('Invalid or inactive coupon code', 400);
-    if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new AppError('Coupon has expired', 400);
-    if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses)
-      throw new AppError('Coupon usage limit reached', 400);
-    if (itemsTotal < coupon.minOrderAmount)
-      throw new AppError(`Minimum order amount for this coupon is ${coupon.minOrderAmount}`, 400);
-
-    couponDiscount =
-      coupon.type === 'percent'
-        ? Math.min((itemsTotal * coupon.value) / 100, itemsTotal)
-        : Math.min(coupon.value, itemsTotal);
-    appliedCouponCode = coupon.code;
-
-    // Increment usage count
-    await Coupon.findByIdAndUpdate(coupon._id, { $inc: { usedCount: 1 } });
-  }
-
-  // ── COD processing fee ─────────────────────────────────────────────────────
-  const codProcessingFee = paymentMethod === 'cash_on_delivery' ? 20 : 0;
-
-  const totalAmount = Math.max(
-    0,
-    Math.round((itemsTotal + deliveryCharge - couponDiscount + codProcessingFee) * 100) / 100
-  );
-
-  // ── Mobile payment validation ───────────────────────────────────────────────
-  let resolvedMobilePayment: Record<string, any> | undefined;
-  if (paymentMethod === 'mobile_banking') {
-    if (
-      !mobilePayment?.paymentMethodId ||
-      !mobilePayment?.mobileLast4 ||
-      !mobilePayment?.transactionId
-    ) {
-      throw new AppError(
-        'Mobile payment details (payment method, last 4 digits, transaction ID) are required',
-        400
-      );
-    }
-    if (!/^\d{4}$/.test(mobilePayment.mobileLast4)) {
-      throw new AppError('Mobile last 4 digits must be exactly 4 digits', 400);
-    }
-    const method = await PaymentMethod.findById(mobilePayment.paymentMethodId);
-    if (!method || !method.isActive) throw new AppError('Selected payment method is unavailable', 400);
-    resolvedMobilePayment = {
-      paymentMethodId: method._id,
-      paymentMethodName: method.name,
-      mobileLast4: mobilePayment.mobileLast4,
-      transactionId: mobilePayment.transactionId.trim(),
-    };
-  }
-
-  const order = await Order.create({
+  const order = await placeOrder({
     userId: req.user!.id,
-    items: orderItems,
-    totalAmount,
+    rawItems,
     shippingAddress,
-    phone,
+    phone: normalizedPhone,
     paymentMethod,
-    deliveryZoneId: resolvedDeliveryZoneId,
-    deliveryCharge,
-    codProcessingFee,
-    couponCode: appliedCouponCode,
-    couponDiscount,
-    orderNote: orderNote || undefined,
-    mobilePayment: resolvedMobilePayment,
+    deliveryZoneId,
+    couponCode,
+    orderNote,
+    mobilePayment,
   });
 
-  // Notification: new order placed
-  createNotification({
-    type: 'order',
-    title: 'New Order Placed',
-    message: `Order ${order.orderNumber} placed for ৳${order.totalAmount.toLocaleString()}`,
-    referenceId: order._id,
-    referenceModel: 'Order',
-  }).catch(console.error);
-
-  // Notification: low stock alerts
-  for (const item of orderItems) {
-    const updatedProduct = await Product.findById(item.productId).select('stock title');
-    if (updatedProduct && updatedProduct.stock <= LOW_STOCK_THRESHOLD) {
-      createNotification({
-        type: 'product',
-        title: 'Low Stock Alert',
-        message: `"${updatedProduct.title}" has only ${updatedProduct.stock} units remaining`,
-        referenceId: updatedProduct._id,
-        referenceModel: 'Product',
-      }).catch(console.error);
-    }
-  }
+  // Save phone & shipping address to user profile if missing
+  await User.findByIdAndUpdate(req.user!.id, {
+    $set: {
+      phone: normalizedPhone,
+      address: shippingAddress,
+    },
+  }).catch(() => {});
 
   // Clear cart after order
   await Cart.findOneAndUpdate({ userId: req.user!.id }, { items: [], totalAmount: 0 });
@@ -250,6 +75,175 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     message: 'Order placed successfully',
     data: order,
+  });
+});
+
+// POST /api/v1/orders/guest-checkout  (public — no login required)
+const guestCheckout = asyncHandler(async (req: Request, res: Response) => {
+  const {
+    name,
+    email,
+    phone,
+    shippingAddress,
+    items,
+    paymentMethod = 'cash_on_delivery',
+    deliveryZoneId,
+    couponCode,
+    orderNote,
+    mobilePayment,
+  } = req.body;
+
+  const customerName = String(name || '').trim() || 'Valued Customer';
+  const normalizedPhone = normalizeBdPhone(phone);
+  if (!normalizedPhone) {
+    throw new AppError('Please enter a valid 11-digit Bangladesh mobile number (e.g. 017XXXXXXXX)', 400);
+  }
+  if (!shippingAddress || !shippingAddress.street || !shippingAddress.city) {
+    throw new AppError('Shipping address is required', 400);
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new AppError('Your shopping bag is empty', 400);
+  }
+
+  const rawEmail = email ? String(email).trim().toLowerCase() : '';
+  const hasValidRealEmail = Boolean(rawEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail));
+
+  // Check if an account already exists with this phone number (or provided email)
+  const existingUser = await User.findOne({
+    $or: [
+      { phone: normalizedPhone },
+      { phone: String(phone).trim() },
+      { phone: `+88${normalizedPhone}` },
+      { phone: `88${normalizedPhone}` },
+      { email: `${normalizedPhone}@guest.local` },
+      ...(hasValidRealEmail ? [{ email: rawEmail }] : []),
+    ],
+  });
+
+  if (existingUser) {
+    // Attach order to existing user account without resetting password or auto-logging in
+    const order = await placeOrder({
+      userId: existingUser._id!,
+      rawItems: items,
+      shippingAddress,
+      phone: normalizedPhone,
+      paymentMethod,
+      deliveryZoneId,
+      couponCode,
+      orderNote,
+      mobilePayment,
+    });
+
+    // Update address & phone if missing on existing user
+    const updates: Record<string, any> = { address: shippingAddress };
+    if (!existingUser.phone) updates.phone = normalizedPhone;
+    await User.findByIdAndUpdate(existingUser._id, { $set: updates }).catch(() => {});
+
+    return sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: 'Order placed successfully! Associated with your existing account.',
+      data: {
+        order,
+        accountCreated: false,
+        existingAccount: true,
+        loginIdentifier: normalizedPhone,
+      },
+    });
+  }
+
+  // New customer → auto-create account with a 6-digit numeric password
+  const generatedPassword = generateSimplePassword();
+  let finalEmail = `${normalizedPhone}@guest.local`;
+  let isGuestEmail = true;
+
+  if (hasValidRealEmail) {
+    const emailConflict = await User.findOne({ email: rawEmail });
+    if (!emailConflict) {
+      finalEmail = rawEmail;
+      isGuestEmail = false;
+    }
+  }
+
+  const newUser = await User.create({
+    name: customerName,
+    email: finalEmail,
+    phone: normalizedPhone,
+    password: generatedPassword,
+    role: 'user',
+    address: shippingAddress,
+    isVerified: true,
+    autoGenerated: true,
+    isGuestEmail,
+  });
+
+  // Notification: new user auto-registered
+  createNotification({
+    type: 'user',
+    title: 'New Customer Auto-Registered',
+    message: `${newUser.name} (${normalizedPhone}) registered via quick checkout`,
+    referenceId: newUser._id,
+    referenceModel: 'User',
+  }).catch(console.error);
+
+  // Place the order under the new user's ID (if order fails, remove the newly created user cleanly)
+  let order;
+  try {
+    order = await placeOrder({
+      userId: newUser._id!,
+      rawItems: items,
+      shippingAddress,
+      phone: normalizedPhone,
+      paymentMethod,
+      deliveryZoneId,
+      couponCode,
+      orderNote,
+      mobilePayment,
+    });
+  } catch (err) {
+    await User.findByIdAndDelete(newUser._id).catch(() => {});
+    throw err;
+  }
+
+  // Send email with login credentials if customer provided a real email address
+  if (!isGuestEmail) {
+    sendGuestAccountCredentialsEmail({
+      name: customerName,
+      email: finalEmail,
+      phone: normalizedPhone,
+      password: generatedPassword,
+      orderNumber: order.orderNumber || '',
+      totalAmount: order.totalAmount,
+    }).catch((err) => {
+      console.error('[Email] Guest credentials email failed:', err.message);
+    });
+  }
+
+  // Generate JWT tokens for instant auto-login on the client
+  const payload: JwtPayload = {
+    id: String(newUser._id),
+    email: newUser.email,
+    role: newUser.role,
+  };
+  const { accessToken, refreshToken } = generateTokens(payload);
+
+  const userObj = newUser.toObject();
+  delete userObj.password;
+
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'Order placed & account created successfully!',
+    data: {
+      order,
+      accountCreated: true,
+      existingAccount: false,
+      generatedPassword,
+      loginIdentifier: normalizedPhone,
+      user: userObj,
+      accessToken,
+      refreshToken,
+    },
   });
 });
 
@@ -265,7 +259,7 @@ const getOrders = asyncHandler(async (req: Request, res: Response) => {
 
   const [orders, total] = await Promise.all([
     Order.find(filter)
-      .populate('userId', 'name email avatar')
+      .populate('userId', 'name email phone avatar')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -283,7 +277,7 @@ const getOrders = asyncHandler(async (req: Request, res: Response) => {
 
 // GET /api/v1/orders/:id
 const getOrderById = asyncHandler(async (req: Request, res: Response) => {
-  const order = await Order.findById(req.params.id).populate('userId', 'name email');
+  const order = await Order.findById(req.params.id).populate('userId', 'name email phone');
   if (!order) throw new AppError('Order not found', 404);
 
   const isOwner = String(order.userId) === req.user!.id;
@@ -377,7 +371,6 @@ const trackOrder = asyncHandler(async (req: Request, res: Response) => {
 
   if (!order) throw new AppError('Order not found. Please check your order number.', 404);
 
-  // Return only tracking-relevant info — omit shippingAddress and userId for privacy
   const tracking = {
     orderNumber: order.orderNumber,
     orderStatus: order.orderStatus,
@@ -411,6 +404,7 @@ const trackOrder = asyncHandler(async (req: Request, res: Response) => {
 
 export const orderControllers = {
   createOrder,
+  guestCheckout,
   getOrders,
   getOrderById,
   trackOrder,
