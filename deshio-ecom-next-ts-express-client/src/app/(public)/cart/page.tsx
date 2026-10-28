@@ -1,8 +1,10 @@
 "use client";
 
-import { useCart } from "@/context/CartContext";
+import { useState } from "react";
+import { CartItem, useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/utils/formatPrice";
+import EditOptionModal from "@/components/cart/EditOptionModal";
 import {
   ChevronRight,
   Lock,
@@ -13,6 +15,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Truck,
+  SquarePen,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,6 +27,7 @@ export default function CartPage() {
   const { items, totalItems, totalPrice, updateItem, removeItem, isSyncing } =
     useCart();
   const router = useRouter();
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null);
 
   const handleProceed = () => {
     if (!user) {
@@ -135,21 +139,22 @@ export default function CartPage() {
                       </button>
                     </div>
 
-                    {/* Variant Tags */}
-                    {(item.size || item.color) && (
-                      <div className="flex items-center gap-2 mt-1.5 text-xs text-stone-500">
-                        {item.size && (
-                          <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 font-medium">
-                            Size: {item.size}
-                          </span>
-                        )}
-                        {item.color && (
-                          <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 font-medium">
-                            Color: {item.color}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {/* Variant Summary + Edit Icon (matches reference image) */}
+                    <div className="flex items-center gap-2 mt-1.5 text-xs text-stone-500">
+                      <span className="uppercase tracking-wide font-medium text-stone-500">
+                        {[item.color, item.size].filter(Boolean).join(" / ") ||
+                          "Standard Option"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem(item)}
+                        aria-label="Edit option"
+                        title="Edit size, color or quantity"
+                        className="inline-flex items-center gap-1 text-stone-500 hover:text-stone-900 p-1 rounded hover:bg-stone-100 transition-colors"
+                      >
+                        <SquarePen className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Price & Quantity Stepper */}
@@ -256,6 +261,12 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Option Modal */}
+      <EditOptionModal
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+      />
     </div>
   );
 }

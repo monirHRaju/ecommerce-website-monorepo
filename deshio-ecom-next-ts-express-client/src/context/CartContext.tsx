@@ -29,6 +29,15 @@ export interface CartItem {
   sku?: string;
 }
 
+export interface UpdateCartItemOptionsInput {
+  quantity: number;
+  size?: string;
+  color?: string;
+  sku?: string;
+  price?: number;
+  stock?: number;
+}
+
 interface CartContextValue {
   items: CartItem[];
   totalItems: number;
@@ -37,8 +46,22 @@ interface CartContextValue {
   isSyncing: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (product: Product, qty?: number, variant?: { size?: string; color?: string; sku?: string; priceOverride?: number; stock?: number }) => Promise<void>;
+  addItem: (
+    product: Product,
+    qty?: number,
+    variant?: {
+      size?: string;
+      color?: string;
+      sku?: string;
+      priceOverride?: number;
+      stock?: number;
+    }
+  ) => Promise<void>;
   updateItem: (itemId: string, qty: number) => Promise<void>;
+  updateItemOptions: (
+    itemId: string,
+    options: UpdateCartItemOptionsInput
+  ) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => void;
 }
@@ -67,13 +90,24 @@ function normalizeAuthItems(raw: any[]): CartItem[] {
     .filter((i) => i.productId) // skip orphan items
     .map((i) => {
       const p = i.productId as any;
+      const variants: any[] = Array.isArray(p.variants) ? p.variants : [];
+      const matchedVariant =
+        variants.find((v) => i.sku && v.sku === i.sku) ||
+        variants.find(
+          (v) =>
+            (!i.size ||
+              (v.size || "").toLowerCase() === String(i.size).toLowerCase()) &&
+            (!i.color ||
+              (v.color || "").toLowerCase() === String(i.color).toLowerCase())
+        );
+
       return {
         _id: i._id,
         productId: p._id ?? p,
         title: p.title ?? "",
         image: p.images?.[0] ?? "",
         price: i.price ?? discountedPrice(p.price ?? 0, p.discount ?? 0),
-        stock: i.variantStock ?? p.stock ?? 99,
+        stock: matchedVariant?.stock ?? i.variantStock ?? p.stock ?? 99,
         brand: p.brand,
         size: i.size,
         color: i.color,
@@ -167,7 +201,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     async (
       product: Product,
       qty = 1,
-      variant?: { size?: string; color?: string; sku?: string; priceOverride?: number; stock?: number }
+      variant?: {
+        size?: string;
+        color?: string;
+        sku?: string;
+        priceOverride?: number;
+        stock?: number;
+      }
     ) => {
       const basePrice = variant?.priceOverride ?? product.price;
       const finalPrice = discountedPrice(basePrice, product.discount ?? 0);
@@ -243,6 +283,91 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [user, fetchAuthCart]
   );
 
+  // ── Update item options (size, color, sku, quantity) ────────────────────────
+  const updateItemOptions = useCallback(
+    async (itemId: string, options: UpdateCartItemOptionsInput) => {
+      if (user) {
+        await api.patch(`/cart/${itemId}`, {
+          quantity: options.quantity,
+          size: options.size,
+          color: options.color,
+          sku: options.sku,
+        });
+        await fetchAuthCart();
+      } else {
+        setItems((prev) => {
+          const targetIndex = prev.findIndex((i) => i._id === itemId);
+          if (targetIndex === -1) return prev;
+          const target = prev[targetIndex];
+
+          const nextSize =
+            options.size !== undefined ? options.size : target.size;
+          const nextColor =
+            options.color !== undefined ? options.color : target.color;
+          const nextSku = options.sku !== undefined ? options.sku : target.sku;
+          const nextPrice =
+            options.price !== undefined ? options.price : target.price;
+          const nextStock =
+            options.stock !== undefined ? options.stock : target.stock;
+          const nextQty = Math.min(
+            Math.max(1, options.quantity),
+            Math.max(1, nextStock)
+          );
+          const nextKey = `${target.productId}-${nextSize || ""}-${nextColor || ""}`;
+
+          // Check if another item already has the same productId + size + color
+          const duplicateIndex = prev.findIndex(
+            (other, idx) =>
+              idx !== targetIndex &&
+              other.productId === target.productId &&
+              (other.size || "").toLowerCase() ===
+                (nextSize || "").toLowerCase() &&
+              (other.color || "").toLowerCase() ===
+                (nextColor || "").toLowerCase()
+          );
+
+          let next: CartItem[];
+          if (duplicateIndex > -1) {
+            const dup = prev[duplicateIndex];
+            const mergedQty = Math.min(dup.quantity + nextQty, nextStock);
+            next = prev
+              .map((item, idx) =>
+                idx === duplicateIndex
+                  ? {
+                      ...item,
+                      quantity: mergedQty,
+                      price: nextPrice,
+                      stock: nextStock,
+                      sku: nextSku,
+                    }
+                  : item
+              )
+              .filter((_, idx) => idx !== targetIndex);
+          } else {
+            next = prev.map((item, idx) =>
+              idx === targetIndex
+                ? {
+                    ...item,
+                    _id: nextKey,
+                    size: nextSize,
+                    color: nextColor,
+                    sku: nextSku,
+                    price: nextPrice,
+                    stock: nextStock,
+                    quantity: nextQty,
+                  }
+                : item
+            );
+          }
+
+          writeGuestCart(next);
+          return next;
+        });
+      }
+    },
+    [user, fetchAuthCart]
+  );
+
   // ── Remove item ─────────────────────────────────────────────────────────────
   const removeItem = useCallback(
     async (itemId: string) => {
@@ -278,6 +403,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         closeCart: () => setIsOpen(false),
         addItem,
         updateItem,
+        updateItemOptions,
         removeItem,
         clearCart,
       }}

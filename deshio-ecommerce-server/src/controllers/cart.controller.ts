@@ -143,32 +143,69 @@ const addToCart = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-// PATCH /api/v1/cart/:itemId  { quantity }
+// PATCH /api/v1/cart/:itemId  { quantity?, size?, color?, sku? }
 const updateCartItem = asyncHandler(async (req: Request, res: Response) => {
-  const { quantity } = req.body;
-  const qty = Number(quantity);
-  if (!qty || qty < 1) throw new AppError('Quantity must be at least 1', 400);
+  const { quantity, size, color, sku } = req.body;
 
   const cart = await Cart.findOne({ userId: req.user!.id });
   if (!cart) throw new AppError('Cart not found', 404);
 
-  const item = cart.items.find((i) => String((i as any)._id) === req.params.itemId);
-  if (!item) throw new AppError('Cart item not found', 404);
+  const itemIndex = cart.items.findIndex((i) => String((i as any)._id) === req.params.itemId);
+  if (itemIndex === -1) throw new AppError('Cart item not found', 404);
+  const item = cart.items[itemIndex];
+
+  const qty = quantity !== undefined ? Number(quantity) : item.quantity;
+  if (!qty || qty < 1) throw new AppError('Quantity must be at least 1', 400);
+
+  const nextSize = size !== undefined ? size : item.size;
+  const nextColor = color !== undefined ? color : item.color;
+  const nextSku = sku !== undefined ? sku : item.sku;
 
   const product = await Product.findById(item.productId);
-  if (product) {
-    const variant = resolveVariant(product, {
-      sku: item.sku,
-      size: item.size,
-      color: item.color,
-    });
-    const availableStock = variant ? variant.stock : product.stock;
+  if (!product) throw new AppError('Product not found', 404);
+
+  const variant = resolveVariant(product, {
+    sku: nextSku,
+    size: nextSize,
+    color: nextColor,
+  });
+
+  const availableStock = variant ? variant.stock : product.stock;
+  const resolvedSize = variant?.size ?? nextSize;
+  const resolvedColor = variant?.color ?? nextColor;
+  const resolvedSku = variant?.sku ?? nextSku;
+  const basePrice = variant?.priceOverride ?? product.price;
+  const unitPrice = computeDiscountedUnitPrice(basePrice, product.discount ?? 0);
+
+  // Check if another cart item already has the same product + size + color
+  const duplicateIndex = cart.items.findIndex(
+    (other, idx) =>
+      idx !== itemIndex &&
+      String(other.productId) === String(item.productId) &&
+      (other.size || '').toLowerCase() === (resolvedSize || '').toLowerCase() &&
+      (other.color || '').toLowerCase() === (resolvedColor || '').toLowerCase()
+  );
+
+  if (duplicateIndex > -1) {
+    const mergedQty = cart.items[duplicateIndex].quantity + qty;
+    if (availableStock < mergedQty) {
+      throw new AppError(`Insufficient stock (only ${availableStock} available)`, 400);
+    }
+    cart.items[duplicateIndex].quantity = mergedQty;
+    cart.items[duplicateIndex].price = unitPrice;
+    cart.items[duplicateIndex].sku = resolvedSku;
+    cart.items.splice(itemIndex, 1);
+  } else {
     if (availableStock < qty) {
       throw new AppError(`Insufficient stock (only ${availableStock} available)`, 400);
     }
+    item.quantity = qty;
+    item.size = resolvedSize;
+    item.color = resolvedColor;
+    item.sku = resolvedSku;
+    item.price = unitPrice;
   }
 
-  item.quantity = qty;
   cart.totalAmount = calcTotal(cart.items);
   await cart.save();
   await cart.populate('items.productId', CART_POPULATE_FIELDS);

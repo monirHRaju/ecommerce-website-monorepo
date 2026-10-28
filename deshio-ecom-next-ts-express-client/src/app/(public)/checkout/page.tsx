@@ -1,7 +1,8 @@
 "use client";
 
-import { useCart } from "@/context/CartContext";
+import { CartItem, useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import EditOptionModal from "@/components/cart/EditOptionModal";
 import api from "@/lib/axios";
 import { formatPrice } from "@/utils/formatPrice";
 import { AppliedCoupon, DeliveryZone, PaymentMethod } from "@/types";
@@ -17,10 +18,11 @@ import {
   Package,
   ShoppingBag,
   Smartphone,
+  SquarePen,
   Tag,
+  Trash2,
   Truck,
   X,
-  ShieldCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -109,10 +111,11 @@ function OrderSuccess({ orderNumber }: { orderNumber: string }) {
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export default function CheckoutPage() {
   const { user } = useAuth();
-  const { items, totalItems, totalPrice, clearCart } = useCart();
+  const { items, totalItems, totalPrice, removeItem, clearCart } = useCart();
   const router = useRouter();
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null);
 
   // Coupon state
   const [couponInput, setCouponInput] = useState("");
@@ -711,8 +714,8 @@ export default function CheckoutPage() {
                   </span>
                 </h2>
 
-                {/* Items list with variant details */}
-                <ul className="space-y-3 max-h-60 overflow-y-auto pr-1 divide-y divide-stone-100">
+                {/* Items list with variant details & Edit Option trigger */}
+                <ul className="space-y-3 max-h-72 overflow-y-auto pr-1 divide-y divide-stone-100">
                   {items.map((item) => (
                     <li key={item._id} className="pt-3 first:pt-0 flex gap-3 items-start">
                       <div className="relative w-12 h-16 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/80 shrink-0">
@@ -732,18 +735,40 @@ export default function CheckoutPage() {
                         <p className="text-xs sm:text-sm font-medium text-stone-900 line-clamp-2">
                           {item.title}
                         </p>
-                        {(item.size || item.color) && (
-                          <p className="text-[11px] text-stone-500 mt-0.5">
-                            {item.size && `Size: ${item.size}`}
-                            {item.size && item.color && " • "}
-                            {item.color && item.color}
-                          </p>
-                        )}
-                        <p className="text-xs text-stone-400 mt-0.5">Qty: {item.quantity}</p>
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-stone-500 flex-wrap">
+                          <span className="uppercase tracking-wide font-medium">
+                            {[item.color, item.size].filter(Boolean).join(" / ") || "Standard"}
+                          </span>
+                          <span>•</span>
+                          <span>Qty: {item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => setEditingItem(item)}
+                            title="Edit size, color or quantity"
+                            className="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 hover:text-stone-900 font-medium transition-colors"
+                          >
+                            <SquarePen className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs sm:text-sm font-bold text-stone-900 shrink-0">
-                        {formatPrice(item.price * item.quantity)}
-                      </p>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <p className="text-xs sm:text-sm font-bold text-stone-900">
+                          {formatPrice(item.price * item.quantity)}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeItem(item._id).catch(() =>
+                              toast.error("Failed to remove item")
+                            )
+                          }
+                          aria-label="Remove item"
+                          className="text-stone-400 hover:text-rose-600 p-0.5 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -799,6 +824,12 @@ export default function CheckoutPage() {
           </div>
         </form>
       </div>
+
+      {/* Edit Option Modal */}
+      <EditOptionModal
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+      />
     </div>
   );
 }
