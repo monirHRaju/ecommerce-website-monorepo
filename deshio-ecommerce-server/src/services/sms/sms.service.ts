@@ -196,3 +196,30 @@ export async function sendEventSms(
     console.error(`[SMS Event Error: ${eventKey}]`, err?.message || err);
   }
 }
+
+/**
+ * Sends an optional admin alert SMS if `adminAlertPhone` is configured in SmsSettings.
+ */
+export async function sendAdminOrderAlertSms(params: {
+  orderId?: Types.ObjectId | string;
+  orderNumber: string;
+  totalAmount: number;
+  customerName: string;
+  customerPhone: string;
+}) {
+  try {
+    const smsSettings = await getEffectiveSmsSettings();
+    const adminPhone = smsSettings.adminAlertPhone?.trim();
+    if (!adminPhone) return;
+
+    const message = `New Order #${params.orderNumber} placed by ${params.customerName} (${params.customerPhone}). Total: Tk ${params.totalAmount}.`;
+    await sendSms({
+      to: adminPhone,
+      message,
+      event: 'admin_order_alert',
+      orderId: params.orderId,
+    });
+  } catch (err: any) {
+    console.error('[Admin Order Alert SMS Error]', err?.message || err);
+  }
+}

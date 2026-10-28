@@ -2,8 +2,10 @@ import { Request, Response } from 'express';
 import Cart from '../models/cart.model';
 import Order from '../models/order.model';
 import Product from '../models/product.model';
+import { SmsEventKey } from '../models/smsSettings.model';
 import User from '../models/user.model';
 import { placeOrder, RawOrderItemInput } from '../services/order.service';
+import { sendAdminOrderAlertSms, sendEventSms } from '../services/sms/sms.service';
 import { JwtPayload } from '../types';
 import AppError from '../utils/AppError';
 import asyncHandler from '../utils/asyncHandler';
@@ -30,6 +32,7 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
   if (!phone) throw new AppError('Mobile number is required', 400);
 
   const normalizedPhone = normalizeBdPhone(phone) || String(phone).trim();
+  const buyer = await User.findById(req.user!.id);
 
   const cart = await Cart.findOne({ userId: req.user!.id });
   const rawItems: RawOrderItemInput[] =
@@ -69,6 +72,27 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
   // Clear cart after order
   await Cart.findOneAndUpdate({ userId: req.user!.id }, { items: [], totalAmount: 0 });
+
+  // Fire-and-forget SMS: Order Placed + optional Admin Alert
+  sendEventSms(
+    'order_placed',
+    normalizedPhone,
+    {
+      name: buyer?.name || 'Customer',
+      phone: normalizedPhone,
+      orderNumber: order.orderNumber || '',
+      total: order.totalAmount,
+    },
+    { orderId: order._id, userId: req.user!.id }
+  ).catch(console.error);
+
+  sendAdminOrderAlertSms({
+    orderId: order._id,
+    orderNumber: order.orderNumber || '',
+    totalAmount: order.totalAmount,
+    customerName: buyer?.name || 'Customer',
+    customerPhone: normalizedPhone,
+  }).catch(console.error);
 
   sendResponse(res, {
     statusCode: 201,
@@ -139,6 +163,27 @@ const guestCheckout = asyncHandler(async (req: Request, res: Response) => {
     if (!existingUser.phone) updates.phone = normalizedPhone;
     await User.findByIdAndUpdate(existingUser._id, { $set: updates }).catch(() => {});
 
+    // Fire-and-forget SMS: Order Placed (no new password) + optional Admin Alert
+    sendEventSms(
+      'order_placed',
+      normalizedPhone,
+      {
+        name: existingUser.name || customerName,
+        phone: normalizedPhone,
+        orderNumber: order.orderNumber || '',
+        total: order.totalAmount,
+      },
+      { orderId: order._id, userId: existingUser._id }
+    ).catch(console.error);
+
+    sendAdminOrderAlertSms({
+      orderId: order._id,
+      orderNumber: order.orderNumber || '',
+      totalAmount: order.totalAmount,
+      customerName: existingUser.name || customerName,
+      customerPhone: normalizedPhone,
+    }).catch(console.error);
+
     return sendResponse(res, {
       statusCode: 201,
       success: true,
@@ -204,6 +249,41 @@ const guestCheckout = asyncHandler(async (req: Request, res: Response) => {
     await User.findByIdAndDelete(newUser._id).catch(() => {});
     throw err;
   }
+
+  // Fire-and-forget SMS: 1) Account Credentials SMS + 2) Order Placed SMS + 3) Admin Alert SMS
+  sendEventSms(
+    'account_created',
+    normalizedPhone,
+    {
+      name: customerName,
+      phone: normalizedPhone,
+      password: generatedPassword,
+      orderNumber: order.orderNumber || '',
+      total: order.totalAmount,
+    },
+    { orderId: order._id, userId: newUser._id }
+  ).catch(console.error);
+
+  sendEventSms(
+    'order_placed',
+    normalizedPhone,
+    {
+      name: customerName,
+      phone: normalizedPhone,
+      password: generatedPassword,
+      orderNumber: order.orderNumber || '',
+      total: order.totalAmount,
+    },
+    { orderId: order._id, userId: newUser._id }
+  ).catch(console.error);
+
+  sendAdminOrderAlertSms({
+    orderId: order._id,
+    orderNumber: order.orderNumber || '',
+    totalAmount: order.totalAmount,
+    customerName,
+    customerPhone: normalizedPhone,
+  }).catch(console.error);
 
   // Send email with login credentials if customer provided a real email address
   if (!isGuestEmail) {
@@ -293,9 +373,23 @@ const getOrderById = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const STATUS_TO_SMS_EVENT: Partial<Record<string, SmsEventKey>> = {
+  processing: 'order_processing',
+  shipped: 'order_shipped',
+  delivered: 'order_delivered',
+  cancelled: 'order_cancelled',
+};
+
 // PATCH /api/v1/orders/:id/status  (admin)
 const updateOrderStatus = asyncHandler(async (req: Request, res: Response) => {
   const { orderStatus, paymentStatus } = req.body;
+
+  const existingOrder = await Order.findById(req.params.id).populate<{
+    userId: { _id: any; name?: string; phone?: string };
+  }>('userId', 'name phone');
+  if (!existingOrder) throw new AppError('Order not found', 404);
+
+  const previousStatus = existingOrder.orderStatus;
 
   const update: Record<string, any> = {};
   if (orderStatus) update.orderStatus = orderStatus;
@@ -303,6 +397,29 @@ const updateOrderStatus = asyncHandler(async (req: Request, res: Response) => {
 
   const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true });
   if (!order) throw new AppError('Order not found', 404);
+
+  // Trigger automated SMS if orderStatus changed to processing / shipped / delivered / cancelled
+  if (orderStatus && orderStatus !== previousStatus) {
+    const smsEvent = STATUS_TO_SMS_EVENT[String(orderStatus)];
+    const recipientPhone = order.phone || existingOrder.userId?.phone;
+    if (smsEvent && recipientPhone) {
+      sendEventSms(
+        smsEvent,
+        recipientPhone,
+        {
+          name: existingOrder.userId?.name || 'Customer',
+          phone: recipientPhone,
+          orderNumber: order.orderNumber || '',
+          total: order.totalAmount,
+          status: String(orderStatus),
+        },
+        {
+          orderId: order._id,
+          userId: existingOrder.userId?._id,
+        }
+      ).catch(console.error);
+    }
+  }
 
   sendResponse(res, {
     statusCode: 200,
@@ -355,6 +472,21 @@ const cancelOrder = asyncHandler(async (req: Request, res: Response) => {
     referenceId: order._id,
     referenceModel: 'Order',
   }).catch(console.error);
+
+  // Fire-and-forget SMS: Order Cancelled
+  if (order.phone) {
+    sendEventSms(
+      'order_cancelled',
+      order.phone,
+      {
+        phone: order.phone,
+        orderNumber: order.orderNumber || '',
+        total: order.totalAmount,
+        status: 'cancelled',
+      },
+      { orderId: order._id, userId: order.userId }
+    ).catch(console.error);
+  }
 
   sendResponse(res, {
     statusCode: 200,
