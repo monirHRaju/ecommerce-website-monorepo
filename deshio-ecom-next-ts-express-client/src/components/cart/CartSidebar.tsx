@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { CartItem, useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
 import EditOptionModal from "@/components/cart/EditOptionModal";
 import { cn } from "@/utils/cn";
 import { formatPrice } from "@/utils/formatPrice";
@@ -21,7 +20,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/context/ToastContext";
 
 export default function CartSidebar() {
-  const { user } = useAuth();
   const {
     items,
     totalItems,
@@ -36,11 +34,7 @@ export default function CartSidebar() {
 
   const handleProceed = () => {
     closeCart();
-    if (!user) {
-      router.push("/login?redirect=/checkout");
-    } else {
-      router.push("/checkout");
-    }
+    router.push("/checkout");
   };
 
   return (

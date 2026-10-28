@@ -388,8 +388,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // ── Clear cart ──────────────────────────────────────────────────────────────
   const clearCart = useCallback(() => {
     setItems([]);
-    if (!user) localStorage.removeItem(GUEST_KEY);
-  }, [user]);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(GUEST_KEY);
+    }
+  }, []);
 
   return (
     <CartContext.Provider

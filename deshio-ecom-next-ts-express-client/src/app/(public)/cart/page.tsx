@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { CartItem, useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/utils/formatPrice";
 import EditOptionModal from "@/components/cart/EditOptionModal";
 import {
@@ -23,18 +22,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/context/ToastContext";
 
 export default function CartPage() {
-  const { user } = useAuth();
   const { items, totalItems, totalPrice, updateItem, removeItem, isSyncing } =
     useCart();
   const router = useRouter();
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
 
   const handleProceed = () => {
-    if (!user) {
-      router.push("/login?redirect=/checkout");
-    } else {
-      router.push("/checkout");
-    }
+    router.push("/checkout");
   };
 
   if (items.length === 0) {
