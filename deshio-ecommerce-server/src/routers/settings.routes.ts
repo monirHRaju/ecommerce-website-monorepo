@@ -1,5 +1,13 @@
 import express from 'express';
-import { getSeoSettings, updateSeoSettings } from '../controllers/settings.controller';
+import {
+  checkSmsBalance,
+  getSeoSettings,
+  getSmsLogs,
+  getSmsSettings,
+  sendTestSms,
+  updateSeoSettings,
+  updateSmsSettings,
+} from '../controllers/settings.controller';
 import authenticate from '../middlewares/auth.middleware';
 import authorize from '../middlewares/role.middleware';
 
@@ -31,5 +39,12 @@ router.patch('/pages', authenticate, authorize('admin', 'super-admin'), updateSe
 
 // GET /api/v1/settings/public (public)
 router.get('/public', getSeoSettings);
+
+// ─── SMS Gateway & Logs (Admin only) ─────────────────────────────────────────
+router.get('/sms', authenticate, authorize('admin', 'super-admin'), getSmsSettings);
+router.patch('/sms', authenticate, authorize('admin', 'super-admin'), updateSmsSettings);
+router.get('/sms/balance', authenticate, authorize('admin', 'super-admin'), checkSmsBalance);
+router.post('/sms/test', authenticate, authorize('admin', 'super-admin'), sendTestSms);
+router.get('/sms/logs', authenticate, authorize('admin', 'super-admin'), getSmsLogs);
 
 export const SettingsRoutes = router;

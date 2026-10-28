@@ -18,6 +18,10 @@ export default {
   email_user: process.env.EMAIL_USER || '',
   email_pass: process.env.EMAIL_PASS || '',
   email_from: process.env.EMAIL_FROM || 'Deshio <noreply@deshio.com>',
+  // SMS (BulkSMSBD — https://bulksmsbd.net)
+  sms_enabled: process.env.SMS_ENABLED !== 'false',
+  sms_api_key: process.env.SMS_API_KEY || '',
+  sms_sender_id: process.env.SMS_SENDER_ID || '',
   // URLs
   client_url: process.env.PUBLIC_URL || 'http://localhost:3000',
   server_url: process.env.SERVER_URL || 'http://localhost:5001',
