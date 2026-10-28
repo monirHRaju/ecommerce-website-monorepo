@@ -99,6 +99,7 @@ const othersItems: NavItem[] = [
       { name: "Pages Content", path: "/settings/pages" },
       { name: "SEO & Metadata", path: "/settings/seo" },
       { name: "Customer Support", path: "/settings/support" },
+      { name: "SMS Gateway & Logs", path: "/settings/sms" },
     ],
   },
 ];

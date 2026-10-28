@@ -1,5 +1,10 @@
 import { Request, Response } from 'express';
 import SiteSettings from '../models/settings.model';
+import SmsLog from '../models/smsLog.model';
+import SmsSettings, { DEFAULT_SMS_TEMPLATES, SmsEventKey } from '../models/smsSettings.model';
+import { getBulkSmsBalance } from '../services/sms/bulksmsbd.provider';
+import { getEffectiveSmsSettings, sendSms } from '../services/sms/sms.service';
+import AppError from '../utils/AppError';
 import asyncHandler from '../utils/asyncHandler';
 import sendResponse from '../utils/sendResponse';
 
@@ -134,5 +139,157 @@ export const updateSeoSettings = asyncHandler(async (req: Request, res: Response
     success: true,
     message: 'SEO settings updated successfully',
     data: settings,
+  });
+});
+
+// ─── SMS Gateway Settings & Logs (Admin only) ───────────────────────────────
+
+const SMS_EVENT_KEYS: SmsEventKey[] = [
+  'account_created',
+  'order_placed',
+  'order_processing',
+  'order_shipped',
+  'order_delivered',
+  'order_cancelled',
+];
+
+// GET /api/v1/settings/sms (admin)
+export const getSmsSettings = asyncHandler(async (_req: Request, res: Response) => {
+  const settings = await getEffectiveSmsSettings();
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'SMS settings retrieved successfully',
+    data: {
+      ...settings,
+      hasApiKey: Boolean(settings.apiKey),
+      defaultTemplates: DEFAULT_SMS_TEMPLATES,
+    },
+  });
+});
+
+// PATCH /api/v1/settings/sms (admin)
+export const updateSmsSettings = asyncHandler(async (req: Request, res: Response) => {
+  const { enabled, apiKey, senderId, adminAlertPhone, events } = req.body;
+
+  const update: Record<string, any> = {};
+
+  if (enabled !== undefined) update.enabled = Boolean(enabled);
+  if (apiKey !== undefined) update.apiKey = String(apiKey).trim();
+  if (senderId !== undefined) update.senderId = String(senderId).trim();
+  if (adminAlertPhone !== undefined) update.adminAlertPhone = String(adminAlertPhone).trim();
+
+  if (events && typeof events === 'object') {
+    for (const key of SMS_EVENT_KEYS) {
+      const incoming = events[key];
+      if (incoming && typeof incoming === 'object') {
+        if (incoming.enabled !== undefined) {
+          update[`events.${key}.enabled`] = Boolean(incoming.enabled);
+        }
+        if (incoming.template !== undefined) {
+          const tpl = String(incoming.template).trim();
+          update[`events.${key}.template`] = tpl || DEFAULT_SMS_TEMPLATES[key];
+        }
+      }
+    }
+  }
+
+  await SmsSettings.findOneAndUpdate({}, { $set: update }, {
+    new: true,
+    upsert: true,
+    setDefaultsOnInsert: true,
+    runValidators: true,
+  });
+
+  const effective = await getEffectiveSmsSettings();
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'SMS settings saved successfully',
+    data: {
+      ...effective,
+      hasApiKey: Boolean(effective.apiKey),
+      defaultTemplates: DEFAULT_SMS_TEMPLATES,
+    },
+  });
+});
+
+// GET /api/v1/settings/sms/balance (admin)
+export const checkSmsBalance = asyncHandler(async (_req: Request, res: Response) => {
+  const settings = await getEffectiveSmsSettings();
+  const result = await getBulkSmsBalance(settings.apiKey);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.success
+      ? 'SMS balance retrieved successfully'
+      : result.message || 'Could not retrieve SMS balance',
+    data: result,
+  });
+});
+
+// POST /api/v1/settings/sms/test (admin)
+export const sendTestSms = asyncHandler(async (req: Request, res: Response) => {
+  const { to, message } = req.body;
+
+  if (!to || !String(to).trim()) {
+    throw new AppError('Recipient phone number is required', 400);
+  }
+  const text =
+    String(message || '').trim() ||
+    'Deshio Test SMS: Your BulkSMSBD gateway integration is working!';
+
+  const result = await sendSms({
+    to: String(to).trim(),
+    message: text,
+    event: 'test_sms',
+  });
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: result.success,
+    message:
+      result.status === 'sent'
+        ? 'Test SMS sent successfully via BulkSMSBD'
+        : result.status === 'dry_run'
+          ? `Dry-Run recorded: ${result.message}`
+          : `SMS failed: ${result.message}`,
+    data: result,
+  });
+});
+
+// GET /api/v1/settings/sms/logs (admin)
+export const getSmsLogs = asyncHandler(async (req: Request, res: Response) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+  const skip = (page - 1) * limit;
+
+  const filter: Record<string, any> = {};
+  if (req.query.status && ['sent', 'failed', 'dry_run'].includes(String(req.query.status))) {
+    filter.status = String(req.query.status);
+  }
+  if (req.query.event && String(req.query.event).trim()) {
+    filter.event = String(req.query.event).trim();
+  }
+
+  const [logs, total] = await Promise.all([
+    SmsLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    SmsLog.countDocuments(filter),
+  ]);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'SMS logs retrieved successfully',
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    data: logs,
   });
 });
