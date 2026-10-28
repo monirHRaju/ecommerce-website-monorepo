@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ShoppingBag, Star, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Heart, ShoppingBag, Star } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/context/ToastContext";
 import { Product } from "@/types";
 import { discountedPrice, formatPrice } from "@/utils/formatPrice";
+import { isProductOutOfStock, pickDefaultVariant } from "@/utils/variants";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
@@ -16,20 +18,23 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addItem, openCart } = useCart();
+  const router = useRouter();
+  const { addItem } = useCart();
   const { user, updateUser } = useAuth();
   const [isWishlisted, setIsWishlisted] = useState(
     () => user?.wishlist?.includes(product._id) ?? false
   );
-  const [addedToCart, setAddedToCart] = useState(false);
   const [adding, setAdding] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
 
-  const finalPrice = discountedPrice(product.price, product.discount);
+  const defaultVariant = pickDefaultVariant(product);
+  const basePrice = defaultVariant?.priceOverride ?? product.price;
+  const finalPrice = discountedPrice(basePrice, product.discount);
   const productUrl = `/products/${product.slug || product._id}`;
   const hasVariants = Boolean(product.variants && product.variants.length > 0);
+  const isOutOfStock = isProductOutOfStock(product);
 
-  // Extract unique sizes and colors if variants exist
+  // Extract unique sizes if variants exist
   const availableSizes = hasVariants
     ? Array.from(new Set(product.variants!.map((v) => v.size).filter(Boolean)))
     : [];
@@ -38,16 +43,25 @@ export default function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (adding) return;
+    if (adding || isOutOfStock) return;
     setAdding(true);
     try {
-      await addItem(product, 1);
-      setAddedToCart(true);
-      openCart();
-      setTimeout(() => setAddedToCart(false), 2000);
+      await addItem(
+        product,
+        1,
+        defaultVariant
+          ? {
+              size: defaultVariant.size,
+              color: defaultVariant.color,
+              sku: defaultVariant.sku,
+              priceOverride: defaultVariant.priceOverride,
+              stock: defaultVariant.stock,
+            }
+          : undefined
+      );
+      router.push("/checkout");
     } catch {
       toast.error("Failed to add to bag");
-    } finally {
       setAdding(false);
     }
   };
@@ -74,8 +88,6 @@ export default function ProductCard({ product }: ProductCardProps) {
       setWishlistLoading(false);
     }
   };
-
-  const isOutOfStock = product.stock === 0;
 
   return (
     <div className="group relative flex flex-col h-full bg-white rounded-xl border border-stone-200/80 overflow-hidden hover:shadow-lg hover:border-stone-300 transition-all duration-300">
@@ -198,44 +210,27 @@ export default function ProductCard({ product }: ProductCardProps) {
               </span>
               {product.discount > 0 && (
                 <span className="text-xs text-stone-400 line-through">
-                  {formatPrice(product.price)}
+                  {formatPrice(basePrice)}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Quick Action Button */}
-          {hasVariants ? (
-            <Link
-              href={productUrl}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-300 text-stone-800 text-xs font-medium hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-colors"
-            >
-              <span>Options</span>
-            </Link>
-          ) : (
-            <button
-              onClick={handleQuickAdd}
-              disabled={isOutOfStock || adding}
-              aria-label="Add to bag"
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                addedToCart
-                  ? "bg-emerald-600 text-white"
-                  : "bg-stone-900 text-white hover:bg-stone-800"
-              }`}
-            >
-              {addedToCart ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Added</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Add</span>
-                </>
-              )}
-            </button>
-          )}
+          {/* Quick Add to Cart → Instant Checkout */}
+          <button
+            type="button"
+            onClick={handleQuickAdd}
+            disabled={isOutOfStock || adding}
+            aria-label="Add to Cart"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 text-white text-xs font-medium hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {adding ? (
+              <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            ) : (
+              <ShoppingBag className="w-3.5 h-3.5" />
+            )}
+            <span>{adding ? "Adding…" : "Add to Cart"}</span>
+          </button>
         </div>
       </div>
     </div>

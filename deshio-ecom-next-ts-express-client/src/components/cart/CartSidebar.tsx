@@ -1,10 +1,20 @@
 "use client";
 
-import { useCart } from "@/context/CartContext";
+import { useState } from "react";
+import { CartItem, useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import EditOptionModal from "@/components/cart/EditOptionModal";
 import { cn } from "@/utils/cn";
 import { formatPrice } from "@/utils/formatPrice";
-import { Minus, Plus, ShoppingBag, Trash2, X, ArrowRight } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  ShoppingBag,
+  Trash2,
+  X,
+  ArrowRight,
+  SquarePen,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +32,7 @@ export default function CartSidebar() {
     removeItem,
   } = useCart();
   const router = useRouter();
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null);
 
   const handleProceed = () => {
     closeCart();
@@ -131,21 +142,21 @@ export default function CartSidebar() {
                       {item.title}
                     </Link>
 
-                    {/* Variant Attributes (Size & Color) */}
-                    {(item.size || item.color) && (
-                      <div className="flex items-center gap-1.5 text-[11px] text-stone-500">
-                        {item.size && (
-                          <span className="px-1.5 py-0.5 rounded bg-stone-100 text-stone-700 font-medium">
-                            Size: {item.size}
-                          </span>
-                        )}
-                        {item.color && (
-                          <span className="px-1.5 py-0.5 rounded bg-stone-100 text-stone-700 font-medium">
-                            {item.color}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {/* Variant Attributes (Size & Color) + Edit Icon */}
+                    <div className="flex items-center gap-1.5 text-[11px] text-stone-500">
+                      <span className="uppercase tracking-wide font-medium">
+                        {[item.color, item.size].filter(Boolean).join(" / ") ||
+                          "Standard"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem(item)}
+                        title="Edit option"
+                        className="text-stone-500 hover:text-stone-900 p-0.5 rounded hover:bg-stone-100 transition-colors"
+                      >
+                        <SquarePen className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
 
                     <p className="text-xs sm:text-sm font-bold text-stone-900 pt-0.5">
                       {formatPrice(item.price)}
@@ -251,6 +262,12 @@ export default function CartSidebar() {
           </div>
         )}
       </div>
+
+      {/* Edit Option Modal */}
+      <EditOptionModal
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+      />
     </>
   );
 }
