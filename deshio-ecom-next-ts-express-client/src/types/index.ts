@@ -21,6 +21,7 @@ export interface AuthTokens {
 
 export interface Address {
   street?: string;
+  thana?: string;
   city?: string;
   country?: string;
   zip?: string;

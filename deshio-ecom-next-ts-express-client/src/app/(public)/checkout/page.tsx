@@ -4,6 +4,11 @@ import { CartItem, useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import EditOptionModal from "@/components/cart/EditOptionModal";
 import api from "@/lib/axios";
+import {
+  generateEventId,
+  getMetaBrowserIdentifiers,
+  trackEvent,
+} from "@/lib/analytics";
 import { formatPrice } from "@/utils/formatPrice";
 import { AppliedCoupon, DeliveryZone, PaymentMethod } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +35,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "@/context/ToastContext";
 import { z } from "zod";
@@ -41,25 +46,16 @@ const bdPhoneRegex = /^(?:\+?880|0)?1[3-9]\d{8}$/;
 
 const schema = z
   .object({
-    name: z.string().min(2, "Full name is required"),
     phone: z
       .string()
       .trim()
       .refine((val) => bdPhoneRegex.test(val.replace(/[\s\-()]/g, "")), {
         message: "Enter a valid 11-digit BD mobile number (e.g. 017XXXXXXXX)",
       }),
-    email: z
-      .string()
-      .trim()
-      .optional()
-      .refine(
-        (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-        "Enter a valid email address"
-      ),
-    street: z.string().min(5, "Street address is required"),
-    city: z.string().min(2, "City is required"),
-    country: z.string().min(2, "Country is required"),
-    zip: z.string().optional(),
+    name: z.string().min(2, "Full name is required"),
+    street: z.string().min(5, "Address is required"),
+    city: z.string().min(2, "District is required"),
+    thana: z.string().min(2, "Thana is required"),
     deliveryZoneId: z.string().min(1, "Please select a delivery option"),
     paymentMethod: z.enum(["cash_on_delivery", "mobile_banking"] as const, {
       error: "Select a payment method",
@@ -332,14 +328,11 @@ export default function CheckoutPage() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: user?.name ?? "",
       phone: user?.phone ?? "",
-      email:
-        user?.email && !user.email.endsWith("@guest.local") ? user.email : "",
+      name: user?.name ?? "",
       street: user?.address?.street ?? "",
       city: user?.address?.city ?? "",
-      country: user?.address?.country ?? "Bangladesh",
-      zip: user?.address?.zip ?? "",
+      thana: user?.address?.thana ?? "",
       paymentMethod: "cash_on_delivery",
       deliveryZoneId: "",
       orderNote: "",
@@ -352,20 +345,14 @@ export default function CheckoutPage() {
   // Sync user profile defaults when user loads
   useEffect(() => {
     if (!user) return;
-    if (user.name && !watch("name")) setValue("name", user.name);
     if (user.phone && !watch("phone")) setValue("phone", user.phone);
-    if (
-      user.email &&
-      !user.email.endsWith("@guest.local") &&
-      !watch("email")
-    ) {
-      setValue("email", user.email);
-    }
+    if (user.name && !watch("name")) setValue("name", user.name);
     if (user.address?.street && !watch("street"))
       setValue("street", user.address.street);
     if (user.address?.city && !watch("city"))
       setValue("city", user.address.city);
-    if (user.address?.zip && !watch("zip")) setValue("zip", user.address.zip);
+    if (user.address?.thana && !watch("thana"))
+      setValue("thana", user.address.thana);
   }, [user, setValue, watch]);
 
   // Auto-select first delivery zone when zones are fetched
@@ -386,6 +373,36 @@ export default function CheckoutPage() {
   const deliveryCharge = selectedZone?.charge ?? 0;
   const couponDiscount = appliedCoupon?.discount ?? 0;
   const grandTotal = Math.max(0, totalPrice + deliveryCharge - couponDiscount);
+  const initiatedTracked = useRef(false);
+
+  // Fire InitiateCheckout once when shopper lands on checkout with items
+  useEffect(() => {
+    if (initiatedTracked.current || items.length === 0) return;
+    initiatedTracked.current = true;
+
+    trackEvent("InitiateCheckout", {
+      userData: user
+        ? {
+            email: user.email,
+            phone: user.phone,
+            name: user.name,
+            externalId: user._id,
+          }
+        : undefined,
+      customData: {
+        value: totalPrice,
+        currency: "BDT",
+        content_ids: items.map((i) => i.sku || i.productId),
+        content_type: "product",
+        contents: items.map((i) => ({
+          id: i.sku || i.productId,
+          quantity: i.quantity,
+          item_price: i.price,
+        })),
+        num_items: totalItems,
+      },
+    });
+  }, [items, totalItems, totalPrice, user]);
 
   if (orderSuccess) return <OrderSuccess result={orderSuccess} />;
 
@@ -430,9 +447,9 @@ export default function CheckoutPage() {
     try {
       const shippingAddress = {
         street: data.street,
+        thana: data.thana,
         city: data.city,
-        country: data.country,
-        zip: data.zip || "",
+        country: "Bangladesh",
       };
 
       const mobilePayment =
@@ -452,6 +469,38 @@ export default function CheckoutPage() {
         sku: i.sku,
       }));
 
+      const contentIds = items.map((i) => i.sku || i.productId);
+      const contents = items.map((i) => ({
+        id: i.sku || i.productId,
+        quantity: i.quantity,
+        item_price: i.price,
+      }));
+
+      // Fire AddPaymentInfo event
+      trackEvent("AddPaymentInfo", {
+        userData: {
+          name: data.name,
+          phone: data.phone,
+          email: user?.email,
+          city: data.city,
+          country: "Bangladesh",
+        },
+        customData: {
+          value: grandTotal,
+          currency: "BDT",
+          content_ids: contentIds,
+          content_type: "product",
+          contents,
+          num_items: totalItems,
+        },
+      });
+
+      // Shared event_id for Browser Pixel + Server Order CAPI deduplication
+      const purchaseEventId = generateEventId("purchase");
+      const { fbp, fbc } = getMetaBrowserIdentifiers();
+      const eventSourceUrl =
+        typeof window !== "undefined" ? window.location.href : undefined;
+
       if (user) {
         const res = await api.post("/orders", {
           shippingAddress,
@@ -462,17 +511,39 @@ export default function CheckoutPage() {
           orderNote: data.orderNote || undefined,
           mobilePayment,
           items: serializedItems,
+          eventId: purchaseEventId,
+          fbp,
+          fbc,
+          eventSourceUrl,
         });
+        const createdOrder = res.data.data;
+
+        // Fire browser Purchase pixel with identical eventId (skipServerForward because /orders already dispatched Server CAPI)
+        trackEvent("Purchase", {
+          eventId: purchaseEventId,
+          skipServerForward: true,
+          orderId: createdOrder._id,
+          orderNumber: createdOrder.orderNumber,
+          customData: {
+            value: createdOrder.totalAmount ?? grandTotal,
+            currency: "BDT",
+            content_ids: contentIds,
+            content_type: "product",
+            contents,
+            num_items: totalItems,
+            order_id: createdOrder.orderNumber,
+          },
+        });
+
         clearCart();
         setOrderSuccess({
-          orderNumber: res.data.data.orderNumber,
+          orderNumber: createdOrder.orderNumber,
         });
         toast.success("Order placed successfully!");
       } else {
         const res = await api.post("/orders/guest-checkout", {
           name: data.name,
           phone: data.phone,
-          email: data.email || undefined,
           shippingAddress,
           items: serializedItems,
           paymentMethod: data.paymentMethod,
@@ -480,9 +551,41 @@ export default function CheckoutPage() {
           couponCode: appliedCoupon?.code,
           orderNote: data.orderNote || undefined,
           mobilePayment,
+          eventId: purchaseEventId,
+          fbp,
+          fbc,
+          eventSourceUrl,
         });
 
         const result = res.data.data;
+
+        if (result.accountCreated) {
+          trackEvent("CompleteRegistration", {
+            userData: {
+              name: data.name,
+              phone: data.phone,
+              city: data.city,
+              country: "Bangladesh",
+            },
+          });
+        }
+
+        // Fire browser Purchase pixel with identical eventId (skipServerForward because /orders/guest-checkout already dispatched Server CAPI)
+        trackEvent("Purchase", {
+          eventId: purchaseEventId,
+          skipServerForward: true,
+          orderId: result.order?._id,
+          orderNumber: result.order?.orderNumber,
+          customData: {
+            value: result.order?.totalAmount ?? grandTotal,
+            currency: "BDT",
+            content_ids: contentIds,
+            content_type: "product",
+            contents,
+            num_items: totalItems,
+            order_id: result.order?.orderNumber,
+          },
+        });
 
         // Clear guest localStorage cart BEFORE calling login() so syncGuestToApi doesn't re-add ordered items
         clearCart();
@@ -502,7 +605,6 @@ export default function CheckoutPage() {
           existingAccount: result.existingAccount,
           loginIdentifier: result.loginIdentifier,
           generatedPassword: result.generatedPassword,
-          emailSentTo: data.email || undefined,
         });
         toast.success("Order placed successfully!");
       }
@@ -574,24 +676,6 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        Full Name <span className="text-rose-600">*</span>
-                      </label>
-                      <input
-                        {...register("name")}
-                        placeholder="Your full name"
-                        className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
-                          errors.name ? "border-rose-400" : "border-stone-300"
-                        }`}
-                      />
-                      {errors.name && (
-                        <p className="text-rose-600 text-xs mt-1">
-                          {errors.name.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
                         Mobile Number <span className="text-rose-600">*</span>
                       </label>
                       <input
@@ -608,38 +692,33 @@ export default function CheckoutPage() {
                         </p>
                       )}
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        Full Name <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        {...register("name")}
+                        placeholder="Your full name"
+                        className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
+                          errors.name ? "border-rose-400" : "border-stone-300"
+                        }`}
+                      />
+                      {errors.name && (
+                        <p className="text-rose-600 text-xs mt-1">
+                          {errors.name.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Email Address{" "}
-                      <span className="text-stone-400 font-normal">
-                        (optional — for email receipt & credentials)
-                      </span>
-                    </label>
-                    <input
-                      {...register("email")}
-                      type="email"
-                      placeholder="you@example.com"
-                      className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
-                        errors.email ? "border-rose-400" : "border-stone-300"
-                      }`}
-                    />
-                    {errors.email && (
-                      <p className="text-rose-600 text-xs mt-1">
-                        {errors.email.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Street / Full Address{" "}
-                      <span className="text-rose-600">*</span>
+                      Address <span className="text-rose-600">*</span>
                     </label>
                     <input
                       {...register("street")}
-                      placeholder="House 12, Road 5, Dhanmondi"
+                      placeholder="House 12, Road 5, Block C"
                       className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
                         errors.street ? "border-rose-400" : "border-stone-300"
                       }`}
@@ -651,14 +730,14 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        City / District <span className="text-rose-600">*</span>
+                        District <span className="text-rose-600">*</span>
                       </label>
                       <input
                         {...register("city")}
-                        placeholder="Dhaka"
+                        placeholder="e.g. Dhaka"
                         className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
                           errors.city ? "border-rose-400" : "border-stone-300"
                         }`}
@@ -669,33 +748,21 @@ export default function CheckoutPage() {
                         </p>
                       )}
                     </div>
+
                     <div>
                       <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        ZIP / Postal Code{" "}
-                        <span className="text-stone-400 font-normal">
-                          (optional)
-                        </span>
+                        Thana <span className="text-rose-600">*</span>
                       </label>
                       <input
-                        {...register("zip")}
-                        placeholder="1205"
-                        className="w-full rounded-lg border border-stone-300 px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        Country
-                      </label>
-                      <input
-                        {...register("country")}
-                        placeholder="Bangladesh"
+                        {...register("thana")}
+                        placeholder="e.g. Dhanmondi"
                         className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
-                          errors.country ? "border-rose-400" : "border-stone-300"
+                          errors.thana ? "border-rose-400" : "border-stone-300"
                         }`}
                       />
-                      {errors.country && (
+                      {errors.thana && (
                         <p className="text-rose-600 text-xs mt-1">
-                          {errors.country.message}
+                          {errors.thana.message}
                         </p>
                       )}
                     </div>

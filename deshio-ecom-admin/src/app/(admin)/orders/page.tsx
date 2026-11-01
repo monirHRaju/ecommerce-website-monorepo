@@ -128,8 +128,16 @@ function OrderDetailsModal({
               {order.shippingAddress ? (
                 <div className="text-sm text-gray-700 dark:text-gray-300 space-y-0.5">
                   {order.shippingAddress.street && <p>{order.shippingAddress.street}</p>}
-                  {(order.shippingAddress.city || order.shippingAddress.zip) && (
-                    <p>{[order.shippingAddress.city, order.shippingAddress.zip].filter(Boolean).join(", ")}</p>
+                  {(order.shippingAddress.thana || order.shippingAddress.city || order.shippingAddress.zip) && (
+                    <p>
+                      {[
+                        order.shippingAddress.thana,
+                        order.shippingAddress.city,
+                        order.shippingAddress.zip,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
                   )}
                   {order.shippingAddress.country && <p>{order.shippingAddress.country}</p>}
                   {order.phone && <p className="mt-1 font-medium">Phone: {order.phone}</p>}

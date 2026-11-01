@@ -92,6 +92,7 @@ export interface OrderItem {
 
 export interface ShippingAddress {
   street?: string;
+  thana?: string;
   city?: string;
   country?: string;
   zip?: string;
