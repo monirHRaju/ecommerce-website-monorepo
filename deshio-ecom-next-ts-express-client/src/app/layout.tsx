@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import { Poppins } from "next/font/google";
 import Providers from "@/providers/Providers";
 import FloatingSupport from "@/components/support/FloatingSupport";
 import TrackingScripts from "@/components/tracking/TrackingScripts";
@@ -8,15 +8,10 @@ import { OrganizationJsonLd } from "@/components/seo/JsonLd";
 import { getSiteSettings, getTrackingConfig } from "@/lib/settings";
 import "./globals.css";
 
-const playfair = Playfair_Display({
+const poppins = Poppins({
   subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
   display: "swap",
 });
 
@@ -94,7 +89,7 @@ export default async function RootLayout({
     : [];
 
   return (
-    <html lang="en" className={`${playfair.variable} ${jakarta.variable}`}>
+    <html lang="en" className={poppins.variable}>
       <body className="font-sans antialiased bg-white text-stone-900 selection:bg-stone-900 selection:text-white">
         <OrganizationJsonLd
           siteName={siteName}
