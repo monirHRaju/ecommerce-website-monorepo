@@ -14,6 +14,7 @@ import {
   sendTestTrackingEvent,
   updateAdminTrackingSettings,
 } from '../controllers/tracking.controller';
+import { getHomepageSettings, updateHomepageSettings } from '../controllers/homepage.controller';
 import authenticate from '../middlewares/auth.middleware';
 import authorize from '../middlewares/role.middleware';
 
@@ -45,6 +46,12 @@ router.patch('/pages', authenticate, authorize('admin', 'super-admin'), updateSe
 
 // GET /api/v1/settings/public (public)
 router.get('/public', getSeoSettings);
+
+// ─── Homepage banner & sections ──────────────────────────────────────────────
+// GET /api/v1/settings/homepage (public)
+router.get('/homepage', getHomepageSettings);
+// PATCH /api/v1/settings/homepage (admin only)
+router.patch('/homepage', authenticate, authorize('admin', 'super-admin'), updateHomepageSettings);
 
 // ─── SMS Gateway & Logs (Admin only) ─────────────────────────────────────────
 router.get('/sms', authenticate, authorize('admin', 'super-admin'), getSmsSettings);
