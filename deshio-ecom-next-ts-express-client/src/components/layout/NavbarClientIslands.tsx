@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import api from "@/lib/axios";
+import { trackEvent } from "@/lib/analytics";
 import { formatPrice } from "@/utils/formatPrice";
 
 // ── Search Island ────────────────────────────────────────────────────────────
@@ -94,6 +95,11 @@ export function SearchIsland() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
+      trackEvent("Search", {
+        customData: {
+          search_string: query.trim(),
+        },
+      });
       setIsOpen(false);
       router.push(`/products?search=${encodeURIComponent(query.trim())}`);
     }

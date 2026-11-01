@@ -30,4 +30,11 @@ export default {
   google_client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
   facebook_app_id: process.env.FACEBOOK_APP_ID || '',
   facebook_app_secret: process.env.FACEBOOK_APP_SECRET || '',
+  // Marketing & Tracking (Meta Pixel / CAPI / GA4 / TikTok)
+  meta_pixel_id: process.env.META_PIXEL_ID || '',
+  meta_capi_token: process.env.META_CAPI_TOKEN || '',
+  meta_test_event_code: process.env.META_TEST_EVENT_CODE || '',
+  ga_measurement_id: process.env.GA_MEASUREMENT_ID || '',
+  gtm_container_id: process.env.GTM_CONTAINER_ID || '',
+  tiktok_pixel_id: process.env.TIKTOK_PIXEL_ID || '',
 };

@@ -8,6 +8,12 @@ import {
   updateSeoSettings,
   updateSmsSettings,
 } from '../controllers/settings.controller';
+import {
+  getAdminTrackingSettings,
+  getTrackingLogs,
+  sendTestTrackingEvent,
+  updateAdminTrackingSettings,
+} from '../controllers/tracking.controller';
 import authenticate from '../middlewares/auth.middleware';
 import authorize from '../middlewares/role.middleware';
 
@@ -46,5 +52,11 @@ router.patch('/sms', authenticate, authorize('admin', 'super-admin'), updateSmsS
 router.get('/sms/balance', authenticate, authorize('admin', 'super-admin'), checkSmsBalance);
 router.post('/sms/test', authenticate, authorize('admin', 'super-admin'), sendTestSms);
 router.get('/sms/logs', authenticate, authorize('admin', 'super-admin'), getSmsLogs);
+
+// ─── Marketing & Tracking / Meta CAPI (Admin only) ───────────────────────────
+router.get('/tracking', authenticate, authorize('admin', 'super-admin'), getAdminTrackingSettings);
+router.patch('/tracking', authenticate, authorize('admin', 'super-admin'), updateAdminTrackingSettings);
+router.post('/tracking/test', authenticate, authorize('admin', 'super-admin'), sendTestTrackingEvent);
+router.get('/tracking/logs', authenticate, authorize('admin', 'super-admin'), getTrackingLogs);
 
 export const SettingsRoutes = router;

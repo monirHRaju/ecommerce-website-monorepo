@@ -1,6 +1,7 @@
 "use client";
 
 import api from "@/lib/axios";
+import { trackEvent } from "@/lib/analytics";
 import { Product } from "@/types";
 import { discountedPrice } from "@/utils/formatPrice";
 import {
@@ -212,6 +213,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const basePrice = variant?.priceOverride ?? product.price;
       const finalPrice = discountedPrice(basePrice, product.discount ?? 0);
       const effectiveStock = variant?.stock ?? product.stock;
+
+      const contentId = variant?.sku || product._id;
+      const categoryName =
+        typeof product.category === "object"
+          ? product.category?.name
+          : undefined;
+
+      trackEvent("AddToCart", {
+        userData: user
+          ? {
+              email: user.email,
+              phone: user.phone,
+              name: user.name,
+              externalId: user._id,
+            }
+          : undefined,
+        customData: {
+          value: finalPrice * qty,
+          currency: "BDT",
+          content_ids: [contentId],
+          content_type: "product",
+          content_name: product.title,
+          content_category: categoryName,
+          contents: [
+            {
+              id: contentId,
+              quantity: qty,
+              item_price: finalPrice,
+            },
+          ],
+          num_items: qty,
+        },
+      });
 
       if (user) {
         await api.post("/cart", {

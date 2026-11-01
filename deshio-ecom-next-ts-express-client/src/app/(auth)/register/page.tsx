@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
 
 import { toast } from "@/context/ToastContext";
+import { trackEvent } from "@/lib/analytics";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 
@@ -46,6 +47,13 @@ export default function RegisterPage() {
         password: values.password,
       });
       login(data.data.accessToken, data.data.refreshToken, data.data.user);
+      trackEvent("CompleteRegistration", {
+        userData: {
+          name: values.name,
+          email: values.email,
+          externalId: data.data.user?._id,
+        },
+      });
       toast.success("Account created successfully! Welcome 🎉");
       router.push("/");
     } catch (err: any) {

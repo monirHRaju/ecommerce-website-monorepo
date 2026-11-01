@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import Providers from "@/providers/Providers";
 import FloatingSupport from "@/components/support/FloatingSupport";
+import TrackingScripts from "@/components/tracking/TrackingScripts";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
-import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings, getTrackingConfig } from "@/lib/settings";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -81,7 +83,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const settings = await getSiteSettings();
+  const [settings, trackingConfig] = await Promise.all([
+    getSiteSettings(),
+    getTrackingConfig(),
+  ]);
   const siteName = settings?.siteName || "Deshio";
   const canonicalUrl = settings?.canonicalUrl || "https://deshio.com";
   const socialList = settings?.socialLinks
@@ -99,6 +104,9 @@ export default async function RootLayout({
           contactPhone={settings?.contactPhone}
           socialLinks={socialList}
         />
+        <Suspense fallback={null}>
+          <TrackingScripts config={trackingConfig} />
+        </Suspense>
         <Providers>{children}</Providers>
         <FloatingSupport
           whatsapp={settings?.whatsappSupport || settings?.socialLinks?.whatsapp}

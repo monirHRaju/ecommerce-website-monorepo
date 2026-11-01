@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Heart,
   ShoppingBag,
@@ -17,6 +17,7 @@ import { discountedPrice, formatPrice } from "@/utils/formatPrice";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/context/ToastContext";
+import { trackEvent } from "@/lib/analytics";
 import api from "@/lib/axios";
 
 interface AddToCartPanelProps {
@@ -78,6 +79,43 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
   const currentBasePrice = activeVariant?.priceOverride ?? product.price;
   const finalUnitPrice = discountedPrice(currentBasePrice, product.discount ?? 0);
   const isOutOfStock = currentStock === 0;
+  const trackedProductId = useRef<string>("");
+
+  useEffect(() => {
+    if (!product?._id || trackedProductId.current === product._id) return;
+    trackedProductId.current = product._id;
+
+    const categoryName =
+      typeof product.category === "object" ? product.category?.name : undefined;
+    const primarySku = activeVariant?.sku || product._id;
+
+    trackEvent("ViewContent", {
+      userData: user
+        ? {
+            email: user.email,
+            phone: user.phone,
+            name: user.name,
+            externalId: user._id,
+          }
+        : undefined,
+      customData: {
+        value: finalUnitPrice,
+        currency: "BDT",
+        content_ids: [primarySku],
+        content_type: "product",
+        content_name: product.title,
+        content_category: categoryName,
+        contents: [
+          {
+            id: primarySku,
+            quantity: 1,
+            item_price: finalUnitPrice,
+          },
+        ],
+        num_items: 1,
+      },
+    });
+  }, [product, activeVariant, finalUnitPrice, user]);
 
   const handleAddToCart = async () => {
     if (isOutOfStock || adding) return;
