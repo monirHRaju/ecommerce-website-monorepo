@@ -94,7 +94,7 @@ export default function FloatingSupport({
       ref={containerRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="fixed bottom-6 right-6 z-50 flex flex-col items-end"
+      className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 flex flex-col items-end"
       aria-label="Direct Customer Support"
     >
       {/* ── Social Action Options Popover ─────────────────────────────────── */}

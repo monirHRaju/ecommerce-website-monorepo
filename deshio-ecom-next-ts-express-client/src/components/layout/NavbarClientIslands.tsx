@@ -45,6 +45,13 @@ export function SearchIsland() {
     setMounted(true);
   }, []);
 
+  // Allow other components (e.g. mobile bottom nav) to open the search overlay
+  useEffect(() => {
+    const open = () => setIsOpen(true);
+    window.addEventListener("deshio:open-search", open);
+    return () => window.removeEventListener("deshio:open-search", open);
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";

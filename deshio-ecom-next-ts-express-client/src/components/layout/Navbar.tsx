@@ -50,14 +50,14 @@ export default async function Navbar() {
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80">
       {/* Top Announcement Bar */}
       {showAnnouncement && announcement && (
-        <div className="bg-stone-900 text-stone-200 text-[11px] font-medium tracking-wider uppercase py-2 px-4 text-center">
+        <div className="bg-stone-900 text-stone-200 text-[10px] sm:text-[11px] font-medium tracking-wide sm:tracking-wider uppercase py-1.5 sm:py-2 px-3 sm:px-4 text-center">
           <span>{announcement}</span>
         </div>
       )}
 
       {/* Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-18 gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 lg:h-18 gap-3 lg:gap-4">
           {/* Mobile Menu Button */}
           <MobileDrawerIsland categories={categories} />
 
@@ -103,8 +103,13 @@ export default async function Navbar() {
 
           {/* Right Action Islands */}
           <div className="flex items-center gap-1 sm:gap-2">
-            <SearchIsland />
-            <UserAccountIsland />
+            {/* On mobile, search & account live in the bottom tab bar */}
+            <div className="hidden lg:block">
+              <SearchIsland />
+            </div>
+            <div className="hidden lg:block">
+              <UserAccountIsland />
+            </div>
             <CartTriggerIsland />
           </div>
         </div>

@@ -167,7 +167,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
 
       {/* 5. Cookie Consent Banner (when requireCookieConsent is enabled in Admin) */}
       {showBanner && (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:max-w-md z-50 rounded-2xl bg-stone-900/95 backdrop-blur-md text-white p-5 shadow-2xl border border-stone-800 space-y-3">
+        <div className="fixed bottom-[4.75rem] lg:bottom-4 left-3 right-3 sm:left-6 sm:right-auto sm:max-w-md z-50 rounded-2xl bg-stone-900/95 backdrop-blur-md text-white p-5 shadow-2xl border border-stone-800 space-y-3">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
               <Cookie className="w-4 h-4" />
