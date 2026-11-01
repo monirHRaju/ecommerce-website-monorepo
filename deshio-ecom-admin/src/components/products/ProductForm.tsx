@@ -132,6 +132,8 @@ export default function ProductForm({ defaultValues, onSubmit, submitLabel }: Pr
   const watchedVariants = watch("variants");
   const watchedPrice = watch("price");
   const watchedDiscount = watch("discount");
+  const watchedStock = watch("stock");
+  const hasVariants = Boolean(watchedVariants && watchedVariants.length > 0);
 
   const categories = categoriesData ?? [];
   const catName = categories.find((c) => c._id === watchedCategory)?.name ?? watchedCategory;
@@ -139,10 +141,10 @@ export default function ProductForm({ defaultValues, onSubmit, submitLabel }: Pr
   // Calculate live total stock from variants if variants exist
   const totalStock = useMemo(() => {
     if (!watchedVariants || watchedVariants.length === 0) {
-      return watch("stock") ?? 0;
+      return Number(watchedStock) || 0;
     }
     return watchedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
-  }, [watchedVariants, watch]);
+  }, [watchedVariants, watchedStock]);
 
   // Bulk generate variants helper
   const handleBulkGenerate = () => {
@@ -348,17 +350,31 @@ export default function ProductForm({ defaultValues, onSubmit, submitLabel }: Pr
               </div>
               <div>
                 <label className="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Total Stock <span className="text-xs text-gray-400 font-normal">(derived)</span>
+                  Total Stock{" "}
+                  <span className="text-xs text-gray-400 font-normal">
+                    {hasVariants ? "(derived from variants)" : ""}
+                  </span>
                 </label>
-                <input
-                  type="number"
-                  value={totalStock}
-                  readOnly={Boolean(watchedVariants && watchedVariants.length > 0)}
-                  {...(!watchedVariants || watchedVariants.length === 0
-                    ? register("stock", { valueAsNumber: true })
-                    : {})}
-                  className="input-field bg-gray-50 dark:bg-gray-800/50 cursor-default"
-                />
+                {hasVariants ? (
+                  <input
+                    key="derived-stock"
+                    type="number"
+                    value={totalStock}
+                    readOnly
+                    className="input-field bg-gray-50 dark:bg-gray-800/50 cursor-default"
+                  />
+                ) : (
+                  <input
+                    key="manual-stock"
+                    type="number"
+                    min="0"
+                    {...register("stock", { valueAsNumber: true })}
+                    className="input-field"
+                  />
+                )}
+                {errors.stock && (
+                  <p className="mt-1 text-xs text-red-500">{errors.stock.message}</p>
+                )}
               </div>
             </div>
 
