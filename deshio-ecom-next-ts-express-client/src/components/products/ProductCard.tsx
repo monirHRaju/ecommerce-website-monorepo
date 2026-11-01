@@ -90,7 +90,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="group relative flex flex-col h-full bg-white rounded-xl border border-stone-200/80 overflow-hidden hover:shadow-lg hover:border-stone-300 transition-all duration-300">
+    <div className="group relative flex flex-col h-full bg-white rounded-lg sm:rounded-xl border border-stone-200/80 overflow-hidden sm:hover:shadow-lg sm:hover:border-stone-300 transition-all duration-300">
       {/* ── Visual Media Container (Portrait 3:4) ─────────────────────── */}
       <Link href={productUrl} className="relative block aspect-[3/4] w-full bg-stone-100 overflow-hidden">
         {/* Primary Image */}
@@ -101,7 +101,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           className={`object-cover object-top transition-transform duration-500 group-hover:scale-105 ${
             product.images?.[1] ? "group-hover:opacity-0 transition-opacity duration-500" : ""
           }`}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           unoptimized
         />
 
@@ -112,20 +112,20 @@ export default function ProductCard({ product }: ProductCardProps) {
             alt={`${product.title} alternate angle`}
             fill
             className="object-cover object-top opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:scale-105"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             unoptimized
           />
         )}
 
         {/* Top Badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
+        <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 flex flex-col gap-1.5 z-10">
           {product.discount > 0 && (
-            <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-600 text-white shadow-xs">
+            <span className="px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-rose-600 text-white shadow-xs">
               -{product.discount}%
             </span>
           )}
           {product.isFeatured && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wider uppercase bg-stone-900/80 text-white backdrop-blur-xs">
+            <span className="hidden sm:inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wider uppercase bg-stone-900/80 text-white backdrop-blur-xs">
               Featured
             </span>
           )}
@@ -133,7 +133,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Gender Badge */}
         {product.gender && (
-          <div className="absolute top-2.5 right-2.5 z-10">
+          <div className="hidden sm:block absolute top-2.5 right-2.5 z-10">
             <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wider uppercase bg-white/90 text-stone-800 shadow-xs backdrop-blur-xs">
               {product.gender}
             </span>
@@ -145,7 +145,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           onClick={handleWishlist}
           disabled={wishlistLoading}
           aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          className={`absolute bottom-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ${
+          className={`absolute bottom-2 right-2 sm:bottom-2.5 sm:right-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ${
             isWishlisted
               ? "bg-rose-50 text-rose-600 border border-rose-200"
               : "bg-white/90 text-stone-700 hover:text-rose-600 hover:bg-white border border-stone-200"
@@ -165,10 +165,10 @@ export default function ProductCard({ product }: ProductCardProps) {
       </Link>
 
       {/* ── Product Information ───────────────────────────────────────── */}
-      <div className="flex flex-col flex-1 p-4">
+      <div className="flex flex-col flex-1 p-2.5 sm:p-4">
         {/* Category / Brand */}
-        <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
-          <span className="uppercase tracking-wider font-medium text-[11px]">
+        <div className="flex items-center justify-between text-xs text-stone-500 mb-1 gap-1">
+          <span className="uppercase tracking-wide sm:tracking-wider font-medium text-[10px] sm:text-[11px] truncate">
             {typeof product.category === "object" && product.category?.name
               ? product.category.name
               : product.brand || "Signature Collection"}
@@ -176,23 +176,23 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Rating */}
           {product.rating > 0 && (
-            <div className="flex items-center gap-1 text-stone-600">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span className="text-xs font-medium">{product.rating.toFixed(1)}</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 text-stone-600 shrink-0">
+              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400" />
+              <span className="text-[11px] sm:text-xs font-medium">{product.rating.toFixed(1)}</span>
             </div>
           )}
         </div>
 
         {/* Title */}
         <Link href={productUrl} className="block group-hover:text-amber-800 transition-colors">
-          <h3 className="font-medium text-sm text-stone-900 leading-snug line-clamp-2 min-h-[2.5rem]">
+          <h3 className="font-medium text-[13px] sm:text-sm text-stone-900 leading-snug line-clamp-2 min-h-[2.1rem] sm:min-h-[2.5rem]">
             {product.title}
           </h3>
         </Link>
 
         {/* Available Sizes preview */}
         {availableSizes.length > 0 && (
-          <div className="flex items-center gap-1 mt-2 text-[11px] text-stone-500">
+          <div className="hidden sm:flex items-center gap-1 mt-2 text-[11px] text-stone-500">
             <span className="font-medium text-stone-400">Sizes:</span>
             <span className="text-stone-700 font-medium">
               {availableSizes.slice(0, 4).join(", ")}
@@ -202,14 +202,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
 
         {/* Price & Action */}
-        <div className="mt-auto pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+        <div className="mt-auto pt-2 sm:pt-3 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-base font-bold text-stone-900">
+            <div className="flex items-baseline flex-wrap gap-x-1.5">
+              <span className="text-sm sm:text-base font-bold text-stone-900">
                 {formatPrice(finalPrice)}
               </span>
               {product.discount > 0 && (
-                <span className="text-xs text-stone-400 line-through">
+                <span className="text-[11px] sm:text-xs text-stone-400 line-through">
                   {formatPrice(basePrice)}
                 </span>
               )}
@@ -222,7 +222,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             onClick={handleQuickAdd}
             disabled={isOutOfStock || adding}
             aria-label="Add to Cart"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 text-white text-xs font-medium hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg bg-stone-900 text-white text-xs font-medium hover:bg-stone-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {adding ? (
               <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />

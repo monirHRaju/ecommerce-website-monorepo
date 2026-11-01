@@ -69,12 +69,12 @@ export default function RelatedProducts({ categoryId, excludeId }: Props) {
       >
         {isLoading
           ? [...Array(4)].map((_, i) => (
-              <div key={i} className="w-64 shrink-0 snap-start">
+              <div key={i} className="w-44 sm:w-64 shrink-0 snap-start">
                 <ProductSkeleton />
               </div>
             ))
           : data!.map((product) => (
-              <div key={product._id} className="w-64 shrink-0 snap-start">
+              <div key={product._id} className="w-44 sm:w-64 shrink-0 snap-start">
                 <ProductCard product={product} />
               </div>
             ))}
