@@ -23,6 +23,7 @@ const orderSchema = new Schema<IOrder>(
     totalAmount: { type: Number, required: true },
     shippingAddress: {
       street: { type: String },
+      thana: { type: String },
       city: { type: String },
       country: { type: String },
       zip: { type: String },

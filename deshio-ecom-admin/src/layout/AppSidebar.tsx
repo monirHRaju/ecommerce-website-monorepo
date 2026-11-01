@@ -96,10 +96,12 @@ const othersItems: NavItem[] = [
       { name: "My Profile", path: "/settings/profile" },
       { name: "Change Password", path: "/settings/password" },
       { name: "Website & Branding", path: "/settings/website" },
+      { name: "Homepage Sections", path: "/settings/homepage" },
       { name: "Pages Content", path: "/settings/pages" },
       { name: "SEO & Metadata", path: "/settings/seo" },
       { name: "Customer Support", path: "/settings/support" },
       { name: "SMS Gateway & Logs", path: "/settings/sms" },
+      { name: "Marketing & Pixels", path: "/settings/tracking" },
     ],
   },
 ];

@@ -8,6 +8,13 @@ import {
   updateSeoSettings,
   updateSmsSettings,
 } from '../controllers/settings.controller';
+import {
+  getAdminTrackingSettings,
+  getTrackingLogs,
+  sendTestTrackingEvent,
+  updateAdminTrackingSettings,
+} from '../controllers/tracking.controller';
+import { getHomepageSettings, updateHomepageSettings } from '../controllers/homepage.controller';
 import authenticate from '../middlewares/auth.middleware';
 import authorize from '../middlewares/role.middleware';
 
@@ -40,11 +47,23 @@ router.patch('/pages', authenticate, authorize('admin', 'super-admin'), updateSe
 // GET /api/v1/settings/public (public)
 router.get('/public', getSeoSettings);
 
+// ─── Homepage banner & sections ──────────────────────────────────────────────
+// GET /api/v1/settings/homepage (public)
+router.get('/homepage', getHomepageSettings);
+// PATCH /api/v1/settings/homepage (admin only)
+router.patch('/homepage', authenticate, authorize('admin', 'super-admin'), updateHomepageSettings);
+
 // ─── SMS Gateway & Logs (Admin only) ─────────────────────────────────────────
 router.get('/sms', authenticate, authorize('admin', 'super-admin'), getSmsSettings);
 router.patch('/sms', authenticate, authorize('admin', 'super-admin'), updateSmsSettings);
 router.get('/sms/balance', authenticate, authorize('admin', 'super-admin'), checkSmsBalance);
 router.post('/sms/test', authenticate, authorize('admin', 'super-admin'), sendTestSms);
 router.get('/sms/logs', authenticate, authorize('admin', 'super-admin'), getSmsLogs);
+
+// ─── Marketing & Tracking / Meta CAPI (Admin only) ───────────────────────────
+router.get('/tracking', authenticate, authorize('admin', 'super-admin'), getAdminTrackingSettings);
+router.patch('/tracking', authenticate, authorize('admin', 'super-admin'), updateAdminTrackingSettings);
+router.post('/tracking/test', authenticate, authorize('admin', 'super-admin'), sendTestTrackingEvent);
+router.get('/tracking/logs', authenticate, authorize('admin', 'super-admin'), getTrackingLogs);
 
 export const SettingsRoutes = router;

@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import api from "@/lib/axios";
+import { trackEvent } from "@/lib/analytics";
 import { formatPrice } from "@/utils/formatPrice";
 
 // ── Search Island ────────────────────────────────────────────────────────────
@@ -42,6 +43,13 @@ export function SearchIsland() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Allow other components (e.g. mobile bottom nav) to open the search overlay
+  useEffect(() => {
+    const open = () => setIsOpen(true);
+    window.addEventListener("deshio:open-search", open);
+    return () => window.removeEventListener("deshio:open-search", open);
   }, []);
 
   useEffect(() => {
@@ -94,6 +102,11 @@ export function SearchIsland() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
+      trackEvent("Search", {
+        customData: {
+          search_string: query.trim(),
+        },
+      });
       setIsOpen(false);
       router.push(`/products?search=${encodeURIComponent(query.trim())}`);
     }

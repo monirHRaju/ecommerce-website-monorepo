@@ -52,7 +52,7 @@ export default function WishlistPage() {
           <Link href="/products" className="btn btn-primary btn-sm">Explore Products</Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
           {products.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}

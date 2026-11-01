@@ -6,6 +6,7 @@ import { SmsEventKey } from '../models/smsSettings.model';
 import User from '../models/user.model';
 import { placeOrder, RawOrderItemInput } from '../services/order.service';
 import { sendAdminOrderAlertSms, sendEventSms } from '../services/sms/sms.service';
+import { sendMetaCapiEvent } from '../services/tracking.service';
 import { JwtPayload } from '../types';
 import AppError from '../utils/AppError';
 import asyncHandler from '../utils/asyncHandler';
@@ -14,6 +15,91 @@ import { createNotification } from '../utils/notificationService';
 import { generateSimplePassword, normalizeBdPhone } from '../utils/phone';
 import sendResponse from '../utils/sendResponse';
 import { generateTokens } from './auth.controller';
+
+function extractClientIp(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim();
+  }
+  if (Array.isArray(forwarded) && forwarded.length > 0) {
+    return forwarded[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || '';
+}
+
+function triggerServerPurchaseTracking(params: {
+  req: Request;
+  order: any;
+  eventId?: string;
+  fbp?: string;
+  fbc?: string;
+  eventSourceUrl?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  shippingAddress?: any;
+  userId?: any;
+}) {
+  const {
+    req,
+    order,
+    eventId,
+    fbp,
+    fbc,
+    eventSourceUrl,
+    customerName,
+    customerEmail,
+    customerPhone,
+    shippingAddress,
+    userId,
+  } = params;
+
+  const resolvedEventId =
+    eventId && String(eventId).trim()
+      ? String(eventId).trim()
+      : `purchase_${order.orderNumber || order._id}`;
+
+  const items: any[] = Array.isArray(order.items) ? order.items : [];
+  const contentIds = items.map((i) => String(i.sku || i.productId));
+  const contents = items.map((i) => ({
+    id: String(i.sku || i.productId),
+    quantity: Number(i.quantity) || 1,
+    item_price: Number(i.price) || 0,
+  }));
+  const numItems = items.reduce((sum, i) => sum + (Number(i.quantity) || 1), 0);
+
+  sendMetaCapiEvent({
+    eventName: 'Purchase',
+    eventId: resolvedEventId,
+    eventSourceUrl: eventSourceUrl || req.headers.referer || undefined,
+    source: 'server_order',
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    userId,
+    userData: {
+      name: customerName,
+      email: customerEmail,
+      phone: customerPhone,
+      city: shippingAddress?.city,
+      zip: shippingAddress?.zip,
+      country: shippingAddress?.country || 'bd',
+      externalId: userId ? String(userId) : undefined,
+      clientIpAddress: extractClientIp(req),
+      clientUserAgent: String(req.headers['user-agent'] || ''),
+      fbp: fbp ? String(fbp) : undefined,
+      fbc: fbc ? String(fbc) : undefined,
+    },
+    customData: {
+      value: order.totalAmount,
+      currency: 'BDT',
+      content_ids: contentIds,
+      content_type: 'product',
+      contents,
+      num_items: numItems,
+      order_id: order.orderNumber || String(order._id),
+    },
+  }).catch(console.error);
+}
 
 // POST /api/v1/orders  (authenticated user)
 const createOrder = asyncHandler(async (req: Request, res: Response) => {
@@ -26,6 +112,10 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
     orderNote,
     mobilePayment,
     items: bodyItems,
+    eventId,
+    fbp,
+    fbc,
+    eventSourceUrl,
   } = req.body;
 
   if (!shippingAddress) throw new AppError('Shipping address is required', 400);
@@ -94,6 +184,20 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
     customerPhone: normalizedPhone,
   }).catch(console.error);
 
+  triggerServerPurchaseTracking({
+    req,
+    order,
+    eventId,
+    fbp,
+    fbc,
+    eventSourceUrl,
+    customerName: buyer?.name,
+    customerEmail: buyer?.email,
+    customerPhone: normalizedPhone,
+    shippingAddress,
+    userId: req.user!.id,
+  });
+
   sendResponse(res, {
     statusCode: 201,
     success: true,
@@ -115,6 +219,10 @@ const guestCheckout = asyncHandler(async (req: Request, res: Response) => {
     couponCode,
     orderNote,
     mobilePayment,
+    eventId,
+    fbp,
+    fbc,
+    eventSourceUrl,
   } = req.body;
 
   const customerName = String(name || '').trim() || 'Valued Customer';
@@ -183,6 +291,20 @@ const guestCheckout = asyncHandler(async (req: Request, res: Response) => {
       customerName: existingUser.name || customerName,
       customerPhone: normalizedPhone,
     }).catch(console.error);
+
+    triggerServerPurchaseTracking({
+      req,
+      order,
+      eventId,
+      fbp,
+      fbc,
+      eventSourceUrl,
+      customerName: existingUser.name || customerName,
+      customerEmail: hasValidRealEmail ? rawEmail : existingUser.email,
+      customerPhone: normalizedPhone,
+      shippingAddress,
+      userId: existingUser._id,
+    });
 
     return sendResponse(res, {
       statusCode: 201,
@@ -284,6 +406,20 @@ const guestCheckout = asyncHandler(async (req: Request, res: Response) => {
     customerName,
     customerPhone: normalizedPhone,
   }).catch(console.error);
+
+  triggerServerPurchaseTracking({
+    req,
+    order,
+    eventId,
+    fbp,
+    fbc,
+    eventSourceUrl,
+    customerName,
+    customerEmail: !isGuestEmail ? finalEmail : undefined,
+    customerPhone: normalizedPhone,
+    shippingAddress,
+    userId: newUser._id,
+  });
 
   // Send email with login credentials if customer provided a real email address
   if (!isGuestEmail) {

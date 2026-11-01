@@ -1,22 +1,25 @@
-import type { Metadata } from "next";
-import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
+import { Poppins } from "next/font/google";
 import Providers from "@/providers/Providers";
 import FloatingSupport from "@/components/support/FloatingSupport";
+import TrackingScripts from "@/components/tracking/TrackingScripts";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
-import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings, getTrackingConfig } from "@/lib/settings";
 import "./globals.css";
 
-const playfair = Playfair_Display({
+const poppins = Poppins({
   subsets: ["latin"],
-  variable: "--font-playfair",
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
   display: "swap",
 });
 
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -81,7 +84,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const settings = await getSiteSettings();
+  const [settings, trackingConfig] = await Promise.all([
+    getSiteSettings(),
+    getTrackingConfig(),
+  ]);
   const siteName = settings?.siteName || "Deshio";
   const canonicalUrl = settings?.canonicalUrl || "https://deshio.com";
   const socialList = settings?.socialLinks
@@ -89,7 +95,7 @@ export default async function RootLayout({
     : [];
 
   return (
-    <html lang="en" className={`${playfair.variable} ${jakarta.variable}`}>
+    <html lang="en" className={poppins.variable}>
       <body className="font-sans antialiased bg-white text-stone-900 selection:bg-stone-900 selection:text-white">
         <OrganizationJsonLd
           siteName={siteName}
@@ -99,6 +105,9 @@ export default async function RootLayout({
           contactPhone={settings?.contactPhone}
           socialLinks={socialList}
         />
+        <Suspense fallback={null}>
+          <TrackingScripts config={trackingConfig} />
+        </Suspense>
         <Providers>{children}</Providers>
         <FloatingSupport
           whatsapp={settings?.whatsappSupport || settings?.socialLinks?.whatsapp}

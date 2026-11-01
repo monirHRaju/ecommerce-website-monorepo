@@ -13,6 +13,7 @@ import { ReviewRoutes } from './review.routes';
 import { PaymentMethodRoutes } from './paymentMethod.routes';
 import { UserRoutes } from './user.router';
 import { SettingsRoutes } from './settings.routes';
+import { TrackingRoutes } from './tracking.routes';
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ const moduleRoutes = [
   { path: '/notifications', route: NotificationRoutes },
   { path: '/ai', route: AiRoutes },
   { path: '/settings', route: SettingsRoutes },
+  { path: '/tracking', route: TrackingRoutes },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

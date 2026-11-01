@@ -3,6 +3,7 @@ import { Types } from 'mongoose';
 // ─── User ────────────────────────────────────────────────────────────────────
 export interface IAddress {
   street?: string;
+  thana?: string;
   city?: string;
   country?: string;
   zip?: string;

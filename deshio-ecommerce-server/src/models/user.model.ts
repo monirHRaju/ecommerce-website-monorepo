@@ -18,6 +18,7 @@ const userSchema = new Schema<IUser>(
     phone: { type: String, trim: true, index: true },
     address: {
       street: { type: String },
+      thana: { type: String },
       city: { type: String },
       country: { type: String },
       zip: { type: String },
