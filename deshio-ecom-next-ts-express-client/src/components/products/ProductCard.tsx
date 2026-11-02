@@ -237,12 +237,12 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Actions */}
-        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mt-2.5">
+        <div className="flex flex-col gap-1.5 sm:gap-2 mt-2.5">
           <button
             type="button"
             onClick={handleOrderNow}
             disabled={isOutOfStock || adding || orderingNow}
-            className="inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-stone-900 text-white text-[11px] sm:text-xs font-semibold hover:bg-stone-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-emerald-800 text-white text-xs sm:text-sm font-semibold hover:bg-emerald-900 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {orderingNow ? (
               <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -255,10 +255,10 @@ export default function ProductCard({ product }: ProductCardProps) {
             type="button"
             onClick={handleAddToCart}
             disabled={isOutOfStock || adding || orderingNow}
-            className="inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg border border-stone-900 text-stone-900 bg-white text-[11px] sm:text-xs font-semibold hover:bg-stone-900 hover:text-white active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-stone-900 text-white text-xs sm:text-sm font-semibold hover:bg-stone-800 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {adding ? (
-              <span className="w-3.5 h-3.5 border-2 border-stone-400 border-t-stone-900 rounded-full animate-spin" />
+              <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
               <ShoppingCart className="w-3.5 h-3.5" />
             )}
