@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Clock, User } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "The Journal — Style Guides, Textile Stories & Care Notes | Deshio",
+  title: "The Journal — Style Guides, Textile Stories & Care Notes",
   description:
     "Explore the Deshio Editorial Journal for seasonal lookbooks, Jamdani weaving stories, natural fabric care guides, and festive wardrobe curation.",
   openGraph: {

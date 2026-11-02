@@ -36,6 +36,7 @@ export default function SeoSettingsPage() {
   const [socialInstagram, setSocialInstagram] = useState("");
   const [socialYoutube, setSocialYoutube] = useState("");
   const [socialPinterest, setSocialPinterest] = useState("");
+  const [extraSocials, setExtraSocials] = useState<Record<string, string>>({});
   const [socialWhatsapp, setSocialWhatsapp] = useState("");
   const [socialMessenger, setSocialMessenger] = useState("");
 
@@ -65,6 +66,13 @@ export default function SeoSettingsPage() {
       setSocialInstagram(settings.socialLinks?.instagram || "");
       setSocialYoutube(settings.socialLinks?.youtube || "");
       setSocialPinterest(settings.socialLinks?.pinterest || "");
+      setExtraSocials({
+        x: settings.socialLinks?.x || "",
+        linkedin: settings.socialLinks?.linkedin || "",
+        tiktok: settings.socialLinks?.tiktok || "",
+        telegram: settings.socialLinks?.telegram || "",
+        threads: settings.socialLinks?.threads || "",
+      });
       setSocialWhatsapp(
         settings.whatsappSupport || settings.socialLinks?.whatsapp || ""
       );
@@ -100,6 +108,7 @@ export default function SeoSettingsPage() {
           instagram: socialInstagram,
           youtube: socialYoutube,
           pinterest: socialPinterest,
+          ...extraSocials,
           whatsapp: socialWhatsapp,
           messenger: socialMessenger,
         },
@@ -462,7 +471,7 @@ export default function SeoSettingsPage() {
                 type="url"
                 value={socialFacebook}
                 onChange={(e) => setSocialFacebook(e.target.value)}
-                placeholder="https://facebook.com/deshio"
+                placeholder="https://facebook.com/yourbrand"
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-brand-500"
               />
             </div>
@@ -475,7 +484,7 @@ export default function SeoSettingsPage() {
                 type="url"
                 value={socialInstagram}
                 onChange={(e) => setSocialInstagram(e.target.value)}
-                placeholder="https://instagram.com/deshio"
+                placeholder="https://instagram.com/yourbrand"
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-brand-500"
               />
             </div>
@@ -488,7 +497,7 @@ export default function SeoSettingsPage() {
                 type="url"
                 value={socialYoutube}
                 onChange={(e) => setSocialYoutube(e.target.value)}
-                placeholder="https://youtube.com/@deshio"
+                placeholder="https://youtube.com/@yourbrand"
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-brand-500"
               />
             </div>
@@ -501,10 +510,33 @@ export default function SeoSettingsPage() {
                 type="url"
                 value={socialPinterest}
                 onChange={(e) => setSocialPinterest(e.target.value)}
-                placeholder="https://pinterest.com/deshio"
+                placeholder="https://pinterest.com/yourbrand"
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-brand-500"
               />
             </div>
+
+            {[
+              { key: "x", label: "X (Twitter) URL", ph: "https://x.com/yourbrand" },
+              { key: "linkedin", label: "LinkedIn URL", ph: "https://linkedin.com/company/yourbrand" },
+              { key: "tiktok", label: "TikTok URL", ph: "https://tiktok.com/@yourbrand" },
+              { key: "telegram", label: "Telegram URL", ph: "https://t.me/yourbrand" },
+              { key: "threads", label: "Threads URL", ph: "https://threads.net/@yourbrand" },
+            ].map((s) => (
+              <div key={s.key}>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {s.label}
+                </label>
+                <input
+                  type="url"
+                  value={extraSocials[s.key] || ""}
+                  onChange={(e) =>
+                    setExtraSocials((prev) => ({ ...prev, [s.key]: e.target.value }))
+                  }
+                  placeholder={s.ph}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-brand-500"
+                />
+              </div>
+            ))}
 
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">

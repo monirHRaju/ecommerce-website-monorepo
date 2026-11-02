@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!product) {
     return {
-      title: "Garment Not Found — Deshio",
+      title: "Product Not Found",
     };
   }
 
@@ -70,12 +70,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     typeof product.category === "object" ? product.category?.name : undefined;
 
   return {
-    title: `${product.title} — Deshio Fashion`,
+    title: `${product.title}`,
     description:
       product.description.slice(0, 160) ||
-      `Shop the exquisite ${product.title} tailored from premium fabrics at Deshio.`,
+      `Shop the exquisite ${product.title} tailored from premium fabrics.`,
     openGraph: {
-      title: `${product.title} — Deshio Fashion`,
+      title: `${product.title}`,
       description: product.description.slice(0, 160),
       images: product.images?.[0] ? [{ url: product.images[0] }] : [],
       type: "website",

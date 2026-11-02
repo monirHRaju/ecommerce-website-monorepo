@@ -44,6 +44,7 @@ export const updateSeoSettings = asyncHandler(async (req: Request, res: Response
     messengerSupport,
     showFloatingSupport,
     logoUrl,
+    faviconUrl,
     tagline,
     announcementText,
     showAnnouncement,
@@ -95,6 +96,7 @@ export const updateSeoSettings = asyncHandler(async (req: Request, res: Response
   if (messengerSupport !== undefined) update.messengerSupport = String(messengerSupport).trim();
   if (showFloatingSupport !== undefined) update.showFloatingSupport = Boolean(showFloatingSupport);
   if (logoUrl !== undefined) update.logoUrl = String(logoUrl).trim();
+  if (faviconUrl !== undefined) update.faviconUrl = String(faviconUrl).trim();
   if (tagline !== undefined) update.tagline = String(tagline).trim();
   if (announcementText !== undefined) update.announcementText = String(announcementText).trim();
   if (showAnnouncement !== undefined) update.showAnnouncement = Boolean(showAnnouncement);

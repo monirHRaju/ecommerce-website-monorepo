@@ -374,6 +374,14 @@ export default function CheckoutPage() {
   const couponDiscount = appliedCoupon?.discount ?? 0;
   const grandTotal = Math.max(0, totalPrice + deliveryCharge - couponDiscount);
   const initiatedTracked = useRef(false);
+  const [inlineSubmitBtn, setInlineSubmitBtn] = useState<HTMLButtonElement | null>(null);
+  const [inlineSubmitVisible, setInlineSubmitVisible] = useState(false);
+  useEffect(() => {
+    if (!inlineSubmitBtn || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setInlineSubmitVisible(entry.isIntersecting), { threshold: 0.6 });
+    observer.observe(inlineSubmitBtn);
+    return () => observer.disconnect();
+  }, [inlineSubmitBtn]);
 
   // Fire InitiateCheckout once when shopper lands on checkout with items
   useEffect(() => {
@@ -651,7 +659,7 @@ export default function CheckoutPage() {
           )}
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form id="checkout-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
             {/* ── Left Details ────────────────────────────────────────────── */}
             <div className="space-y-6">
@@ -1213,6 +1221,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <button
+                  ref={setInlineSubmitBtn}
                   type="submit"
                   disabled={placing}
                   className="w-full py-3.5 rounded-lg bg-stone-900 text-white font-semibold text-xs sm:text-sm hover:bg-stone-800 disabled:opacity-40 transition-colors flex items-center justify-center gap-2 shadow-sm"
@@ -1225,6 +1234,36 @@ export default function CheckoutPage() {
                   <span>{placing ? "Confirming Order…" : "Place Order"}</span>
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* Floating Place Order bar (mobile & tablet) */}
+          <div className="lg:hidden h-20" aria-hidden="true" />
+          <div
+            className={`lg:hidden fixed inset-x-0 bottom-[4.5rem] z-40 border-t border-stone-200 bg-white/95 backdrop-blur px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] transition-transform duration-300 ${
+              inlineSubmitVisible ? "translate-y-[200%]" : "translate-y-0"
+            }`}
+          >
+            <div className="mx-auto flex max-w-3xl items-center gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wider text-stone-500">Total</p>
+                <p className="font-serif text-lg font-bold leading-tight text-stone-900">
+                  {formatPrice(grandTotal)}
+                </p>
+              </div>
+              <button
+                type="submit"
+                form="checkout-form"
+                disabled={placing}
+                className="ml-auto flex flex-1 items-center justify-center gap-2 rounded-lg bg-stone-900 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-stone-800 disabled:opacity-40 sm:flex-none sm:px-10"
+              >
+                {placing ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                <span>{placing ? "Confirming Order..." : "Place Order"}</span>
+              </button>
             </div>
           </div>
         </form>

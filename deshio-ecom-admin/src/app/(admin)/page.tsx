@@ -7,8 +7,8 @@ import TopProducts from "@/components/dashboard/TopProducts";
 import RecentOrdersTable from "@/components/dashboard/RecentOrdersTable";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Deshio Admin",
-  description: "Deshio e-commerce admin overview",
+  title: "Dashboard",
+  description: "E-commerce admin overview",
 };
 
 export default function DashboardPage() {

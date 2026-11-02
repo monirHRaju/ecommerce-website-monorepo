@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, ShoppingBag, Star } from "lucide-react";
+import { Heart, ShoppingCart, Star, Zap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/context/ToastContext";
 import { Product } from "@/types";
@@ -39,33 +39,52 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? Array.from(new Set(product.variants!.map((v) => v.size).filter(Boolean)))
     : [];
 
-  const handleQuickAdd = async (e: React.MouseEvent) => {
+  const [orderingNow, setOrderingNow] = useState(false);
+
+  const addToCartInternal = async () => {
+    await addItem(
+      product,
+      1,
+      defaultVariant
+        ? {
+            size: defaultVariant.size,
+            color: defaultVariant.color,
+            sku: defaultVariant.sku,
+            priceOverride: defaultVariant.priceOverride,
+            stock: defaultVariant.stock,
+          }
+        : undefined
+    );
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (adding || isOutOfStock) return;
+    if (adding || orderingNow || isOutOfStock) return;
     setAdding(true);
     try {
-      await addItem(
-        product,
-        1,
-        defaultVariant
-          ? {
-              size: defaultVariant.size,
-              color: defaultVariant.color,
-              sku: defaultVariant.sku,
-              priceOverride: defaultVariant.priceOverride,
-              stock: defaultVariant.stock,
-            }
-          : undefined
-      );
-      router.push("/checkout");
+      await addToCartInternal();
+      toast.success("Added to cart");
     } catch {
-      toast.error("Failed to add to bag");
+      toast.error("Failed to add to cart");
+    } finally {
       setAdding(false);
     }
   };
 
+  const handleOrderNow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (adding || orderingNow || isOutOfStock) return;
+    setOrderingNow(true);
+    try {
+      await addToCartInternal();
+      router.push("/checkout");
+    } catch {
+      toast.error("Failed to place order");
+      setOrderingNow(false);
+    }
+  };
   const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -202,7 +221,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
 
         {/* Price & Action */}
-        <div className="mt-auto pt-2 sm:pt-3 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="mt-auto pt-2 sm:pt-3 border-t border-stone-100 flex flex-col justify-between gap-2">
           <div>
             <div className="flex items-baseline flex-wrap gap-x-1.5">
               <span className="text-sm sm:text-base font-bold text-stone-900">
@@ -215,21 +234,35 @@ export default function ProductCard({ product }: ProductCardProps) {
               )}
             </div>
           </div>
+        </div>
 
-          {/* Quick Add to Cart → Instant Checkout */}
+        {/* Actions */}
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mt-2.5">
           <button
             type="button"
-            onClick={handleQuickAdd}
-            disabled={isOutOfStock || adding}
-            aria-label="Add to Cart"
-            className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg bg-stone-900 text-white text-xs font-medium hover:bg-stone-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            onClick={handleOrderNow}
+            disabled={isOutOfStock || adding || orderingNow}
+            className="inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-stone-900 text-white text-[11px] sm:text-xs font-semibold hover:bg-stone-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            {adding ? (
+            {orderingNow ? (
               <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
-              <ShoppingBag className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5" />
             )}
-            <span>{adding ? "Adding…" : "Add to Cart"}</span>
+            <span>Order Now</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={isOutOfStock || adding || orderingNow}
+            className="inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg border border-stone-900 text-stone-900 bg-white text-[11px] sm:text-xs font-semibold hover:bg-stone-900 hover:text-white active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            {adding ? (
+              <span className="w-3.5 h-3.5 border-2 border-stone-400 border-t-stone-900 rounded-full animate-spin" />
+            ) : (
+              <ShoppingCart className="w-3.5 h-3.5" />
+            )}
+            <span>Add to Cart</span>
           </button>
         </div>
       </div>

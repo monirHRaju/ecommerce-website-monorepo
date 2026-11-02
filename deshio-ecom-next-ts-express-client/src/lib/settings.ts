@@ -4,6 +4,7 @@ export interface SiteSettingsData {
   siteName?: string;
   tagline?: string;
   logoUrl?: string;
+  faviconUrl?: string;
   announcementText?: string;
   showAnnouncement?: boolean;
   address?: string;
@@ -34,6 +35,10 @@ export interface SiteSettingsData {
     tiktok?: string;
     whatsapp?: string;
     messenger?: string;
+    x?: string;
+    linkedin?: string;
+    telegram?: string;
+    threads?: string;
   };
   whatsappSupport?: string;
   messengerSupport?: string;

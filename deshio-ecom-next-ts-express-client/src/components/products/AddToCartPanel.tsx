@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   Check,
   Ruler,
   AlertCircle,
@@ -132,7 +132,7 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
       openCart();
       setTimeout(() => setAdded(false), 2000);
     } catch {
-      toast.error("Failed to add garment to bag");
+      toast.error("Failed to add to cart");
     } finally {
       setAdding(false);
     }
@@ -296,7 +296,7 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
           </button>
         </div>
 
-        {/* Add to Bag Button */}
+        {/* Add to Cart Button */}
         <button
           type="button"
           onClick={handleAddToCart}
@@ -314,14 +314,14 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
           ) : added ? (
             <>
               <Check className="w-4 h-4" />
-              <span>Added to Bag!</span>
+              <span>Added to Cart!</span>
             </>
           ) : isOutOfStock ? (
             <span>Sold Out</span>
           ) : (
             <>
-              <ShoppingBag className="w-4 h-4" />
-              <span>Add to Bag — {formatPrice(finalUnitPrice * qty)}</span>
+              <ShoppingCart className="w-4 h-4" />
+              <span>Add to Cart</span>
             </>
           )}
         </button>

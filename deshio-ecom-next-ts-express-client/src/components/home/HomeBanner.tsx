@@ -9,7 +9,7 @@ export default function HomeBanner({ banner }: { banner: HomeBannerConfig }) {
   const alt = banner.alt || "Banner";
 
   const media = (
-    <div className="relative w-full aspect-[16/9] sm:aspect-[16/6] bg-stone-100 overflow-hidden">
+    <div className="relative w-full h-[32vh] min-h-[160px] max-h-[360px] sm:h-[34vh] sm:max-h-[420px] bg-stone-100 overflow-hidden">
       {hasMobile ? (
         <>
           <Image

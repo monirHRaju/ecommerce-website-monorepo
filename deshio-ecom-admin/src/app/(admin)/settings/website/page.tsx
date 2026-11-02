@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
+import ImageUpload from "@/components/ui/ImageUpload";
 import { SiteSettings } from "@/types";
 
 export default function WebsiteSettingsPage() {
@@ -22,6 +23,7 @@ export default function WebsiteSettingsPage() {
   const [siteName, setSiteName] = useState("");
   const [tagline, setTagline] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [faviconUrl, setFaviconUrl] = useState("");
   const [announcementText, setAnnouncementText] = useState("");
   const [showAnnouncement, setShowAnnouncement] = useState(true);
 
@@ -41,6 +43,7 @@ export default function WebsiteSettingsPage() {
       setSiteName(settings.siteName || "Deshio");
       setTagline(settings.tagline || "Haute & Contemporary");
       setLogoUrl(settings.logoUrl || "");
+      setFaviconUrl(settings.faviconUrl || "");
       setAnnouncementText(
         settings.announcementText ||
           "Complimentary Express Shipping on Orders Above ৳2,500"
@@ -79,6 +82,7 @@ export default function WebsiteSettingsPage() {
         siteName: siteName.trim(),
         tagline: tagline.trim(),
         logoUrl: logoUrl.trim(),
+        faviconUrl: faviconUrl.trim(),
         announcementText: announcementText.trim(),
         showAnnouncement,
         contactEmail: contactEmail.trim(),
@@ -95,6 +99,7 @@ export default function WebsiteSettingsPage() {
     onSuccess: () => {
       toast.success("Website & branding settings saved successfully!");
       qc.invalidateQueries({ queryKey: ["website-settings"] });
+      qc.invalidateQueries({ queryKey: ["brand"] });
       qc.invalidateQueries({ queryKey: ["seo-settings"] });
     },
     onError: (err: any) => {
@@ -178,7 +183,7 @@ export default function WebsiteSettingsPage() {
                   required
                   value={siteName}
                   onChange={(e) => setSiteName(e.target.value)}
-                  placeholder="e.g. Deshio"
+                  placeholder="e.g. Your Brand"
                   className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-brand-500"
                 />
               </div>
@@ -210,6 +215,19 @@ export default function WebsiteSettingsPage() {
               />
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Leave empty to display the stylized text logo automatically.
+              </p>
+            </div>
+
+            <div>
+              <ImageUpload
+                value={faviconUrl || undefined}
+                onChange={(url) => setFaviconUrl(url)}
+                folder="brand/favicon"
+                aspectRatio="square"
+                label="Favicon (browser tab icon)"
+              />
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Square PNG/ICO, at least 128x128 (512x512 recommended). Leave empty to use the brand logo.
               </p>
             </div>
 
@@ -277,7 +295,7 @@ export default function WebsiteSettingsPage() {
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="care@deshio.com"
+                  placeholder="care@yourstore.com"
                   className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-brand-500"
                 />
               </div>

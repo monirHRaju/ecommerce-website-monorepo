@@ -286,6 +286,10 @@ export interface SiteSettings {
     tiktok?: string;
     whatsapp?: string;
     messenger?: string;
+    x?: string;
+    linkedin?: string;
+    telegram?: string;
+    threads?: string;
   };
   whatsappSupport?: string;
   messengerSupport?: string;
@@ -293,6 +297,7 @@ export interface SiteSettings {
 
   // ── Branding & General ──
   logoUrl?: string;
+  faviconUrl?: string;
   tagline?: string;
   announcementText?: string;
   showAnnouncement?: boolean;

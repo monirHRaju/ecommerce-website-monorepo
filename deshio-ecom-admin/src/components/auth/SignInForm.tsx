@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
+import BrandLogo from "@/components/common/BrandLogo";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
@@ -28,16 +29,10 @@ export default function SignInForm() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as unknown as Resolver<FormValues>,
   });
-
-  function fillDemo(email: string, password: string) {
-    setValue("email", email);
-    setValue("password", password);
-  }
 
   async function onSubmit(data: FormValues) {
     try {
@@ -59,7 +54,7 @@ export default function SignInForm() {
         {/* Header */}
         <div className="mb-8">
           <div className="mb-6">
-            <img src="/deshio_logo.svg" alt="Deshio Admin" className="h-12" />
+            <BrandLogo imgClassName="h-12 w-auto max-w-[200px] object-contain" textClassName="text-2xl font-bold text-gray-900 dark:text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white/90 mb-1">
             Sign in to your account
@@ -78,7 +73,7 @@ export default function SignInForm() {
             <Input
               {...register("email")}
               type="email"
-              placeholder="admin@deshio.com"
+              placeholder="admin@yourstore.com"
             />
             {errors.email && (
               <p className="mt-1 text-xs text-error-500">
@@ -150,24 +145,6 @@ export default function SignInForm() {
             )}
           </Button>
         </form>
-
-        {/* Demo login buttons */}
-        <div className="mt-5 space-y-2.5">
-          <p className="text-xs text-center text-gray-400 dark:text-gray-500">Quick demo login</p>
-          <div className="grid grid-cols-2 gap-3 justify-center">
-            <button
-              type="button"
-              onClick={() => fillDemo("admin@example.com", "123456")}
-              className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Admin
-            </button>
-            
-          </div>
-        </div>
 
         {/* Footer note */}
         <div className="mt-8 text-center space-y-2">
