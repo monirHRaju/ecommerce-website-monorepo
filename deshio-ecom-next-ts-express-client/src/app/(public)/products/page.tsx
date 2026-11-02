@@ -4,11 +4,11 @@ import CatalogView from "@/components/products/CatalogView";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "All Products — Curated Fashion Catalog | Deshio",
+  title: "All Products — Curated Fashion Catalog",
   description:
     "Explore our complete collection of luxury handlooms, festive panjabis, designer kurtis, sarees, and contemporary everyday wear in Bangladesh.",
   openGraph: {
-    title: "All Products — Curated Fashion Catalog | Deshio",
+    title: "All Products — Curated Fashion Catalog",
     description:
       "Explore the finest collection of traditional and modern fashion in Bangladesh.",
     type: "website",

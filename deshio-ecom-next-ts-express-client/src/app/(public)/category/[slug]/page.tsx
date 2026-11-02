@@ -32,11 +32,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `${categoryName} — Deshio Fashion`,
+    title: `${categoryName}`,
     description: `Shop our exclusive ${categoryName} collection crafted from premium fabrics with nationwide delivery across Bangladesh.`,
     openGraph: {
-      title: `${categoryName} — Deshio Fashion`,
-      description: `Discover curated ${categoryName} at Deshio.`,
+      title: `${categoryName}`,
+      description: `Discover curated ${categoryName}.`,
       type: "website",
     },
   };

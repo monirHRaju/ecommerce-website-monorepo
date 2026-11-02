@@ -1,3 +1,4 @@
+import BrandLogo from "@/components/common/BrandLogo";
 import GridShape from "@/components/common/GridShape";
 import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -22,7 +23,7 @@ export default function AuthLayout({
               <GridShape />
               <div className="flex flex-col items-center max-w-xs text-center">
                 {/* Logo */}
-                <img src="/deshio_logo.svg" alt="Deshio Admin" className="h-20 mb-6" />
+                <BrandLogo className="mb-6" imgClassName="h-20 w-auto max-w-[240px] object-contain" textClassName="text-4xl font-bold text-white" />
                 <p className="text-gray-400 dark:text-white/60 text-sm leading-relaxed">
                   Manage your products, orders, customers, and analytics — all
                   in one powerful dashboard.

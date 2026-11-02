@@ -3,6 +3,7 @@ import Link from "next/link";
 import { siteConfig } from "@/lib/site";
 import { getSiteSettings } from "@/lib/settings";
 import NewsletterForm from "./NewsletterForm";
+import SocialLinks from "./SocialLinks";
 import { ShieldCheck, Truck, RefreshCw, Sparkles } from "lucide-react";
 
 export default async function Footer() {
@@ -143,12 +144,26 @@ export default async function Footer() {
               Subscribe to receive preview access to limited seasonal drops, private sales, and sartorial inspirations.
             </p>
             <NewsletterForm />
+            <SocialLinks links={settings?.socialLinks as Record<string, string | undefined> | undefined} />
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <p>{copyright}</p>
+          <div className="text-center sm:text-left space-y-1">
+            <p>{copyright}</p>
+            <p>
+              Developed & Maintenance by{" "}
+              <a
+                href="https://monir-h-raju.web.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-stone-700 hover:text-stone-900 underline-offset-2 hover:underline"
+              >
+                Monir Hossain Raju
+              </a>
+            </p>
+          </div>
           <div className="flex gap-6">
             <Link href="/about" className="hover:text-stone-900 transition-colors">
               About Us

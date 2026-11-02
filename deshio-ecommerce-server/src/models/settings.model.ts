@@ -83,6 +83,10 @@ const siteSettingsSchema = new Schema<ISiteSettings>(
       tiktok: { type: String, default: '' },
       whatsapp: { type: String, default: '+880 1700-000000' },
       messenger: { type: String, default: 'https://m.me/deshio' },
+      x: { type: String, default: '' },
+      linkedin: { type: String, default: '' },
+      telegram: { type: String, default: '' },
+      threads: { type: String, default: '' },
     },
     whatsappSupport: {
       type: String,
@@ -95,6 +99,11 @@ const siteSettingsSchema = new Schema<ISiteSettings>(
       trim: true,
     },
     logoUrl: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    faviconUrl: {
       type: String,
       default: '',
       trim: true,

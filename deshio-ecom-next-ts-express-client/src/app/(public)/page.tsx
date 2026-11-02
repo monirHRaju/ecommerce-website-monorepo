@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { getSiteSettings } from "@/lib/settings";
 import { WebSiteJsonLd } from "@/components/seo/JsonLd";
 import HomeBanner from "@/components/home/HomeBanner";
 import HomeSection from "@/components/home/HomeSection";
@@ -12,19 +12,8 @@ import {
 
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: "Deshio — Timeless Elegance & Contemporary Fashion",
-  description:
-    "Discover curated luxury essentials, exquisite handlooms, and contemporary everyday wear crafted from breathable, premium fabrics. Nationwide delivery across Bangladesh.",
-  openGraph: {
-    title: "Deshio — Timeless Elegance & Contemporary Fashion",
-    description:
-      "Curated apparel, authentic handlooms, and modern wardrobe essentials in Bangladesh.",
-    type: "website",
-  },
-};
-
 export default async function HomePage() {
+  const siteSettings = await getSiteSettings();
   const config = await getHomepageConfig();
   const sections = config.sections
     .filter((s) => s.enabled)
@@ -42,7 +31,7 @@ export default async function HomePage() {
 
   return (
     <div className="bg-white pb-4">
-      <WebSiteJsonLd siteName="Deshio" url={canonicalUrl} />
+      <WebSiteJsonLd siteName={siteSettings?.siteName || "Store"} url={canonicalUrl} />
 
       <HomeBanner banner={config.banner} />
 

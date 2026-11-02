@@ -1,4 +1,5 @@
 "use client";
+import BrandLogo from "@/components/common/BrandLogo";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -96,10 +97,10 @@ const othersItems: NavItem[] = [
       { name: "My Profile", path: "/settings/profile" },
       { name: "Change Password", path: "/settings/password" },
       { name: "Website & Branding", path: "/settings/website" },
+      { name: "Customer Support", path: "/settings/support" },
       { name: "Homepage Sections", path: "/settings/homepage" },
       { name: "Pages Content", path: "/settings/pages" },
       { name: "SEO & Metadata", path: "/settings/seo" },
-      { name: "Customer Support", path: "/settings/support" },
       { name: "SMS Gateway & Logs", path: "/settings/sms" },
       { name: "Marketing & Pixels", path: "/settings/tracking" },
     ],
@@ -280,9 +281,9 @@ const AppSidebar: React.FC = () => {
       >
         <Link href="/" className="flex items-center">
           {isExpanded || isHovered || isMobileOpen ? (
-            <img src="/deshio_logo.svg" alt="Deshio Admin" className="h-10" />
+            <BrandLogo />
           ) : (
-            <img src="/deshio_logo.svg" alt="Deshio" className="h-9 w-9 rounded-lg object-cover" />
+            <BrandLogo compact />
           )}
         </Link>
       </div>

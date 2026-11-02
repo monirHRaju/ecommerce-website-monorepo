@@ -25,11 +25,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       : "Unisex & Heritage Collection";
 
   return {
-    title: `${label} — Deshio Fashion`,
+    title: `${label}`,
     description: `Shop our curated ${label} featuring premium fabrics, artisanal handlooms, and contemporary cuts in Bangladesh.`,
     openGraph: {
-      title: `${label} — Deshio Fashion`,
-      description: `Explore ${label} at Deshio.`,
+      title: `${label}`,
+      description: `Explore ${label}.`,
       type: "website",
     },
   };

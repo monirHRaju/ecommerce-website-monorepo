@@ -1,4 +1,5 @@
 "use client";
+import BrandLogo from "@/components/common/BrandLogo";
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
@@ -85,7 +86,7 @@ const AppHeader: React.FC = () => {
 
           {/* Mobile logo */}
           <Link href="/" className="lg:hidden">
-            <img src="/deshio_logo.svg" alt="Deshio Admin" className="h-8" />
+            <BrandLogo imgClassName="h-8 w-auto max-w-[140px] object-contain" textClassName="text-lg font-bold text-gray-900 dark:text-white" />
           </Link>
 
           <button

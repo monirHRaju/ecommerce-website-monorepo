@@ -6,6 +6,7 @@ import FloatingSupport from "@/components/support/FloatingSupport";
 import TrackingScripts from "@/components/tracking/TrackingScripts";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
 import { getSiteSettings, getTrackingConfig } from "@/lib/settings";
+import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -24,9 +25,9 @@ export const viewport: Viewport = {
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
 
-  const siteName = settings?.siteName || "Deshio";
+  const siteName = settings?.siteName || siteConfig.shortName;
   const siteTitle =
-    settings?.siteTitle || "Deshio — Timeless Elegance & Contemporary Fashion";
+    settings?.siteTitle || siteName;
   const titleTemplate = settings?.titleTemplate || `%s | ${siteName}`;
   const description =
     settings?.metaDescription ||
@@ -50,9 +51,11 @@ export async function generateMetadata(): Promise<Metadata> {
       "handloom cotton",
       "mens fashion dhaka",
       "womens kurti",
-      "deshio fashion",
     ],
-    icons: { icon: "/deshio_logo_icon.ico" },
+    icons: {
+      icon: settings?.faviconUrl || settings?.logoUrl || "/favicon.ico",
+      apple: settings?.faviconUrl || settings?.logoUrl || undefined,
+    },
     robots:
       settings?.indexSite === false
         ? { index: false, follow: false }
@@ -76,7 +79,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: siteTitle,
       description,
       images: [ogImage],
-      creator: settings?.twitterHandle || "@deshio_official",
+      creator: settings?.twitterHandle || undefined,
     },
   };
 }
@@ -88,7 +91,7 @@ export default async function RootLayout({
     getSiteSettings(),
     getTrackingConfig(),
   ]);
-  const siteName = settings?.siteName || "Deshio";
+  const siteName = settings?.siteName || siteConfig.shortName;
   const canonicalUrl = settings?.canonicalUrl || "https://deshio.com";
   const socialList = settings?.socialLinks
     ? Object.values(settings.socialLinks as Record<string, string>).filter(Boolean)
