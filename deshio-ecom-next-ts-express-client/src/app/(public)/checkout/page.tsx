@@ -778,7 +778,24 @@ export default function CheckoutPage() {
                 </div>
               </section>
 
-              {/* 2. Dynamic Delivery Option */}
+              {/* 2. Order Note */}
+              <section className="bg-white border border-stone-200/90 rounded-2xl p-6 space-y-3 shadow-xs">
+                <h2 className="font-serif font-bold text-base text-stone-900">
+                  Order Note{" "}
+                  <span className="text-stone-400 font-normal text-xs">
+                    (optional)
+                  </span>
+                </h2>
+                <textarea
+                  {...register("orderNote")}
+                  rows={3}
+                  placeholder="Special delivery instructions, preferred delivery timing, gate codes…"
+                  className="w-full rounded-lg border border-stone-300 p-3 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/30 resize-none"
+                  maxLength={300}
+                />
+              </section>
+
+              {/* 3. Dynamic Delivery Option */}
               <section className="bg-white border border-stone-200/90 rounded-2xl p-6 space-y-4 shadow-xs">
                 <div className="flex items-center gap-2">
                   <Truck className="w-5 h-5 text-amber-800" />
@@ -823,73 +840,6 @@ export default function CheckoutPage() {
                   <p className="text-rose-600 text-xs">
                     {errors.deliveryZoneId.message}
                   </p>
-                )}
-              </section>
-
-              {/* 3. Coupon Code */}
-              <section className="bg-white border border-stone-200/90 rounded-2xl p-6 space-y-3 shadow-xs">
-                <div className="flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-amber-800" />
-                  <h2 className="font-serif font-bold text-base text-stone-900">
-                    Coupon Code
-                  </h2>
-                </div>
-
-                {appliedCoupon ? (
-                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
-                    <div>
-                      <p className="text-xs sm:text-sm font-bold text-emerald-800">
-                        {appliedCoupon.code} —{" "}
-                        {appliedCoupon.type === "percent"
-                          ? `${appliedCoupon.value}% off`
-                          : `৳${appliedCoupon.value} off`}
-                      </p>
-                      <p className="text-[11px] text-emerald-700">
-                        You save {formatPrice(appliedCoupon.discount)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAppliedCoupon(null);
-                        setCouponError("");
-                      }}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-rose-600 hover:bg-rose-50"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={couponInput}
-                        onChange={(e) => {
-                          setCouponInput(e.target.value.toUpperCase());
-                          setCouponError("");
-                        }}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" &&
-                          (e.preventDefault(), handleApplyCoupon())
-                        }
-                        placeholder="Enter coupon code"
-                        className="flex-1 uppercase rounded-lg border border-stone-300 px-3.5 py-2 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/30"
-                        maxLength={20}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyCoupon}
-                        disabled={validatingCoupon || !couponInput.trim()}
-                        className="px-5 py-2 rounded-lg border border-stone-900 text-stone-900 text-xs font-semibold hover:bg-stone-900 hover:text-white transition-colors"
-                      >
-                        {validatingCoupon ? "Checking…" : "Apply"}
-                      </button>
-                    </div>
-                    {couponError && (
-                      <p className="text-rose-600 text-xs">{couponError}</p>
-                    )}
-                  </div>
                 )}
               </section>
 
@@ -1081,23 +1031,75 @@ export default function CheckoutPage() {
                 )}
               </section>
 
-              {/* 5. Order Note */}
+              {/* 5. Coupon Code */}
               <section className="bg-white border border-stone-200/90 rounded-2xl p-6 space-y-3 shadow-xs">
-                <h2 className="font-serif font-bold text-base text-stone-900">
-                  Order Note{" "}
-                  <span className="text-stone-400 font-normal text-xs">
-                    (optional)
-                  </span>
-                </h2>
-                <textarea
-                  {...register("orderNote")}
-                  rows={3}
-                  placeholder="Special delivery instructions, preferred delivery timing, gate codes…"
-                  className="w-full rounded-lg border border-stone-300 p-3 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/30 resize-none"
-                  maxLength={300}
-                />
+                <div className="flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-amber-800" />
+                  <h2 className="font-serif font-bold text-base text-stone-900">
+                    Coupon Code
+                  </h2>
+                </div>
+
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold text-emerald-800">
+                        {appliedCoupon.code} —{" "}
+                        {appliedCoupon.type === "percent"
+                          ? `${appliedCoupon.value}% off`
+                          : `৳${appliedCoupon.value} off`}
+                      </p>
+                      <p className="text-[11px] text-emerald-700">
+                        You save {formatPrice(appliedCoupon.discount)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppliedCoupon(null);
+                        setCouponError("");
+                      }}
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-rose-600 hover:bg-rose-50"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) => {
+                          setCouponInput(e.target.value.toUpperCase());
+                          setCouponError("");
+                        }}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" &&
+                          (e.preventDefault(), handleApplyCoupon())
+                        }
+                        placeholder="Enter coupon code"
+                        className="flex-1 uppercase rounded-lg border border-stone-300 px-3.5 py-2 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/30"
+                        maxLength={20}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={validatingCoupon || !couponInput.trim()}
+                        className="px-5 py-2 rounded-lg border border-stone-900 text-stone-900 text-xs font-semibold hover:bg-stone-900 hover:text-white transition-colors"
+                      >
+                        {validatingCoupon ? "Checking…" : "Apply"}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="text-rose-600 text-xs">{couponError}</p>
+                    )}
+                  </div>
+                )}
               </section>
 
+              
+              
               <div className="flex items-center gap-2 text-xs text-stone-400">
                 <Lock className="w-4 h-4" />
                 <span>
