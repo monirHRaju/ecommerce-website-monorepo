@@ -186,9 +186,9 @@ export default function FloatingSupport({
               <MessageCircle className="w-5 h-5 text-amber-300" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-stone-900 animate-pulse" />
             </div>
-            <span className="text-xs font-semibold tracking-wide">
+            {/* <span className="text-xs font-semibold tracking-wide">
               Support
-            </span>
+            </span> */}
           </>
         )}
       </button>

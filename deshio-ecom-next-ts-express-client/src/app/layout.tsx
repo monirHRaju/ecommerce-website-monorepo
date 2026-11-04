@@ -62,9 +62,14 @@ export async function generateMetadata(): Promise<Metadata> {
         : { index: true, follow: true },
     verification: {
       google: settings?.googleSiteVerification || undefined,
-      other: settings?.bingSiteVerification
-        ? { "msvalidate.01": settings.bingSiteVerification }
-        : undefined,
+      other: {
+        ...(settings?.bingSiteVerification
+          ? { "msvalidate.01": settings.bingSiteVerification }
+          : {}),
+        ...(settings?.facebookDomainVerification
+          ? { "facebook-domain-verification": settings.facebookDomainVerification }
+          : {}),
+      },
     },
     openGraph: {
       title: siteTitle,

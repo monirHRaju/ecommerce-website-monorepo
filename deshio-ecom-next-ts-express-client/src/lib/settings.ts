@@ -52,6 +52,7 @@ export interface SiteSettingsData {
   twitterHandle?: string;
   googleSiteVerification?: string;
   bingSiteVerification?: string;
+  facebookDomainVerification?: string;
   indexSite?: boolean;
 }
 

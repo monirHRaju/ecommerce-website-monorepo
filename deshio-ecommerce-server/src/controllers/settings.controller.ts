@@ -36,6 +36,7 @@ export const updateSeoSettings = asyncHandler(async (req: Request, res: Response
     twitterHandle,
     googleSiteVerification,
     bingSiteVerification,
+    facebookDomainVerification,
     indexSite,
     contactEmail,
     contactPhone,
@@ -89,6 +90,11 @@ export const updateSeoSettings = asyncHandler(async (req: Request, res: Response
     update.googleSiteVerification = String(googleSiteVerification).trim();
   if (bingSiteVerification !== undefined)
     update.bingSiteVerification = String(bingSiteVerification).trim();
+  if (facebookDomainVerification !== undefined) {
+    const rawFb = String(facebookDomainVerification).trim();
+    const match = rawFb.match(/content=["']([^"']+)["']/i);
+    update.facebookDomainVerification = match ? match[1].trim() : rawFb;
+  }
   if (indexSite !== undefined) update.indexSite = Boolean(indexSite);
   if (contactEmail !== undefined) update.contactEmail = String(contactEmail).trim();
   if (contactPhone !== undefined) update.contactPhone = String(contactPhone).trim();

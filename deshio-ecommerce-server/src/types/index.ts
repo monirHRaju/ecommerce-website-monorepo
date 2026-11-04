@@ -235,6 +235,7 @@ export interface ISiteSettings {
   twitterHandle: string;
   googleSiteVerification?: string;
   bingSiteVerification?: string;
+  facebookDomainVerification?: string;
   indexSite: boolean;
   contactEmail?: string;
   contactPhone?: string;

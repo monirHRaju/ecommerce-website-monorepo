@@ -29,6 +29,7 @@ export default function SeoSettingsPage() {
   const [twitterHandle, setTwitterHandle] = useState("@deshio_official");
   const [googleSiteVerification, setGoogleSiteVerification] = useState("");
   const [bingSiteVerification, setBingSiteVerification] = useState("");
+  const [facebookDomainVerification, setFacebookDomainVerification] = useState("");
   const [indexSite, setIndexSite] = useState(true);
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -59,6 +60,7 @@ export default function SeoSettingsPage() {
       setTwitterHandle(settings.twitterHandle || "@deshio_official");
       setGoogleSiteVerification(settings.googleSiteVerification || "");
       setBingSiteVerification(settings.bingSiteVerification || "");
+      setFacebookDomainVerification(settings.facebookDomainVerification || "");
       setIndexSite(settings.indexSite !== undefined ? settings.indexSite : true);
       setContactEmail(settings.contactEmail || "care@deshio.com");
       setContactPhone(settings.contactPhone || "+880 1700-000000");
@@ -98,6 +100,7 @@ export default function SeoSettingsPage() {
         twitterHandle,
         googleSiteVerification,
         bingSiteVerification,
+        facebookDomainVerification,
         indexSite,
         contactEmail,
         contactPhone,
@@ -366,6 +369,25 @@ export default function SeoSettingsPage() {
                 placeholder="e.g. msvalidate.01=..."
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-brand-500 font-mono text-xs"
               />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Facebook / Meta Domain Verification Tag
+              </label>
+              <input
+                type="text"
+                value={facebookDomainVerification}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const match = val.match(/content=["']([^"']+)["']/i);
+                  setFacebookDomainVerification(match ? match[1].trim() : val);
+                }}
+                placeholder='e.g. abcdefg123456 or paste full <meta name="facebook-domain-verification" content="abcdefg" />'
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-brand-500 font-mono text-xs"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Inserts &lt;meta name=&quot;facebook-domain-verification&quot; content=&quot;...&quot; /&gt; in &lt;head&gt;. You can paste either the content token or the full meta tag.
+              </p>
             </div>
           </div>
         </div>
