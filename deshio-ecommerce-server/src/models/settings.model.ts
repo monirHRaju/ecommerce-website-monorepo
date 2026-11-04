@@ -61,6 +61,11 @@ const siteSettingsSchema = new Schema<ISiteSettings>(
       default: '',
       trim: true,
     },
+    facebookDomainVerification: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     indexSite: {
       type: Boolean,
       default: true,
