@@ -108,6 +108,7 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
         contents: [
           {
             id: primarySku,
+            item_name: product.title,
             quantity: 1,
             item_price: finalUnitPrice,
           },

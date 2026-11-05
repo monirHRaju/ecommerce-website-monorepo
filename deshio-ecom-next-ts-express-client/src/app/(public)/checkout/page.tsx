@@ -404,6 +404,7 @@ export default function CheckoutPage() {
         content_type: "product",
         contents: items.map((i) => ({
           id: i.sku || i.productId,
+          item_name: i.title,
           quantity: i.quantity,
           item_price: i.price,
         })),
@@ -480,6 +481,7 @@ export default function CheckoutPage() {
       const contentIds = items.map((i) => i.sku || i.productId);
       const contents = items.map((i) => ({
         id: i.sku || i.productId,
+        item_name: i.title,
         quantity: i.quantity,
         item_price: i.price,
       }));
@@ -534,6 +536,8 @@ export default function CheckoutPage() {
           orderNumber: createdOrder.orderNumber,
           customData: {
             value: createdOrder.totalAmount ?? grandTotal,
+            shipping: createdOrder.deliveryCharge ?? deliveryCharge,
+            tax: 0,
             currency: "BDT",
             content_ids: contentIds,
             content_type: "product",
@@ -586,6 +590,8 @@ export default function CheckoutPage() {
           orderNumber: result.order?.orderNumber,
           customData: {
             value: result.order?.totalAmount ?? grandTotal,
+            shipping: result.order?.deliveryCharge ?? deliveryCharge,
+            tax: 0,
             currency: "BDT",
             content_ids: contentIds,
             content_type: "product",

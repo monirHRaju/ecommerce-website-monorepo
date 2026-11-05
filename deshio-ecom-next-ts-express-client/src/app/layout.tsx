@@ -104,6 +104,13 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={poppins.variable}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "window.dataLayer = window.dataLayer || [];",
+          }}
+        />
+      </head>
       <body className="font-sans antialiased bg-white text-stone-900 selection:bg-stone-900 selection:text-white">
         <OrganizationJsonLd
           siteName={siteName}

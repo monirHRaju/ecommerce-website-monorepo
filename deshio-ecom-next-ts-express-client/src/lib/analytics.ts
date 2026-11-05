@@ -18,6 +18,8 @@ export const CONSENT_STORAGE_KEY = "deshio_cookie_consent";
 
 export interface AnalyticsCustomData {
   value?: number;
+  shipping?: number;
+  tax?: number;
   currency?: string;
   content_ids?: string[];
   content_type?: string;
@@ -25,6 +27,7 @@ export interface AnalyticsCustomData {
   content_category?: string;
   contents?: Array<{
     id: string;
+    item_name?: string;
     quantity: number;
     item_price?: number;
   }>;
@@ -145,39 +148,116 @@ export function trackEvent(
     ...(options.customData || {}),
   };
 
+  // Sanitized payload for Meta Pixel & Meta Conversions API
+  const metaCustomData: AnalyticsCustomData = {
+    value: customData.value,
+    currency: customData.currency || "BDT",
+    content_ids: customData.content_ids,
+    content_type: customData.content_type,
+    content_name: customData.content_name,
+    content_category: customData.content_category,
+    contents: customData.contents?.map((c) => ({
+      id: c.id,
+      quantity: c.quantity,
+      item_price: c.item_price,
+    })),
+    num_items: customData.num_items,
+    order_id: customData.order_id,
+    search_string: customData.search_string,
+  };
+
   // 1. Meta Browser Pixel with eventID deduplication
   if (typeof window.fbq === "function" && (config?.metaEnabled ?? true)) {
     try {
-      window.fbq("track", eventName, customData, { eventID: eventId });
+      window.fbq("track", eventName, metaCustomData, { eventID: eventId });
     } catch {
       // ignore pixel errors
     }
   }
 
-  // 2. Google Analytics 4 / GTM
+  // 2. Google Analytics 4 / Google Tag Manager (GA4 Ecommerce Data Layer Schema)
+  const gaEventMap: Record<TrackingEventName, string> = {
+    PageView: "page_view",
+    ViewContent: "view_item",
+    AddToCart: "add_to_cart",
+    InitiateCheckout: "begin_checkout",
+    AddPaymentInfo: "add_payment_info",
+    Purchase: "purchase",
+    Search: "search",
+    CompleteRegistration: "sign_up",
+  };
+  const gaEventName = gaEventMap[eventName] || eventName;
+
+  const isGaEcommerceEvent =
+    eventName === "ViewContent" ||
+    eventName === "AddToCart" ||
+    eventName === "InitiateCheckout" ||
+    eventName === "AddPaymentInfo" ||
+    eventName === "Purchase";
+
+  const gaItems = (customData.contents || []).map((c) => ({
+    item_id: String(c.id),
+    item_name: String(c.item_name || customData.content_name || c.id),
+    price: Number((c.item_price ?? 0).toFixed(2)),
+    quantity: Number(c.quantity ?? 1),
+  }));
+
+  if (isGaEcommerceEvent) {
+    try {
+      window.dataLayer = window.dataLayer || [];
+      // Clear previous ecommerce object per GA4 GTM best practices
+      window.dataLayer.push({ ecommerce: null });
+
+      if (gaEventName === "purchase") {
+        window.dataLayer.push({
+          event: "purchase",
+          ecommerce: {
+            transaction_id: String(
+              customData.order_id || options.orderNumber || options.orderId || ""
+            ),
+            value: Number((customData.value ?? 0).toFixed(2)),
+            shipping: Number((customData.shipping ?? 0).toFixed(2)),
+            tax: Number((customData.tax ?? 0).toFixed(2)),
+            currency: customData.currency || "BDT",
+            items: gaItems,
+          },
+        });
+      } else {
+        window.dataLayer.push({
+          event: gaEventName,
+          ecommerce: {
+            currency: customData.currency || "BDT",
+            value: Number((customData.value ?? 0).toFixed(2)),
+            items: gaItems,
+          },
+        });
+      }
+    } catch {
+      // ignore dataLayer errors
+    }
+  }
+
+  // Direct gtag.js fallback (when GA4 Measurement ID is configured directly without GTM)
   if (typeof window.gtag === "function" && config?.gaEnabled) {
     try {
-      const gaEventMap: Record<TrackingEventName, string> = {
-        PageView: "page_view",
-        ViewContent: "view_item",
-        AddToCart: "add_to_cart",
-        InitiateCheckout: "begin_checkout",
-        AddPaymentInfo: "add_payment_info",
-        Purchase: "purchase",
-        Search: "search",
-        CompleteRegistration: "sign_up",
-      };
-      window.gtag("event", gaEventMap[eventName] || eventName, {
+      window.gtag("event", gaEventName, {
         event_id: eventId,
         currency: customData.currency || "BDT",
-        value: customData.value,
-        transaction_id: customData.order_id,
+        value:
+          customData.value !== undefined
+            ? Number(customData.value.toFixed(2))
+            : undefined,
+        transaction_id: customData.order_id || options.orderNumber,
+        shipping:
+          customData.shipping !== undefined
+            ? Number(customData.shipping.toFixed(2))
+            : undefined,
+        tax:
+          customData.tax !== undefined
+            ? Number(customData.tax.toFixed(2))
+            : undefined,
         search_term: customData.search_string,
-        items: customData.contents?.map((c) => ({
-          item_id: c.id,
-          quantity: c.quantity,
-          price: c.item_price,
-        })),
+        items: gaItems.length > 0 ? gaItems : undefined,
       });
     } catch {
       // ignore gtag errors
@@ -235,7 +315,7 @@ export function trackEvent(
           fbp,
           fbc,
         },
-        customData,
+        customData: metaCustomData,
       }),
     }).catch(() => {});
   }

@@ -239,6 +239,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           contents: [
             {
               id: contentId,
+              item_name: product.title,
               quantity: qty,
               item_price: finalPrice,
             },

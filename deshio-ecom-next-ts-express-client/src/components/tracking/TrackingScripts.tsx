@@ -27,6 +27,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
   // Sync config into window global and check stored cookie consent
   useEffect(() => {
     if (typeof window === "undefined") return;
+    window.dataLayer = window.dataLayer || [];
     window.__DESHIO_TRACKING_CONFIG__ = config;
     getMetaBrowserIdentifiers();
 
@@ -95,7 +96,10 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
   const canLoadScripts = consentState === "granted";
   const metaPixelId = config?.metaEnabled ? config.metaPixelId?.trim() : "";
   const gaMeasurementId = config?.gaEnabled ? config.gaMeasurementId?.trim() : "";
-  const gtmContainerId = config?.gaEnabled ? config.gtmContainerId?.trim() : "";
+  const gtmContainerId =
+    config?.gaEnabled || config?.gtmContainerId?.trim()
+      ? config?.gtmContainerId?.trim()
+      : "";
   const tiktokPixelId = config?.tiktokEnabled ? config.tiktokPixelId?.trim() : "";
 
   return (
@@ -141,15 +145,28 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
 
       {/* 3. Google Tag Manager (Optional) */}
       {canLoadScripts && gtmContainerId && (
-        <Script id="gtm-init" strategy="afterInteractive">
-          {`
-            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-            })(window,document,'script','dataLayer','${gtmContainerId}');
-          `}
-        </Script>
+        <>
+          <Script id="gtm-init" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+              })(window,document,'script','dataLayer','${gtmContainerId}');
+            `}
+          </Script>
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(
+                gtmContainerId
+              )}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        </>
       )}
 
       {/* 4. TikTok Browser Pixel */}
