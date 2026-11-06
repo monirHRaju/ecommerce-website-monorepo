@@ -121,6 +121,19 @@ export function hasTrackingConsent(config?: PublicTrackingConfig | null): boolea
 }
 
 /**
+ * True once every enabled provider has defined its global (fbq / gtag / ttq),
+ * so the first PageView is not lost to script-loading race conditions.
+ */
+export function isTrackingReady(config?: PublicTrackingConfig | null): boolean {
+  if (typeof window === "undefined" || !config) return true;
+  if (config.metaEnabled && config.metaPixelId?.trim() && typeof window.fbq !== "function") return false;
+  if (config.tiktokEnabled && config.tiktokPixelId?.trim() && !window.ttq) return false;
+  const useGtm = !!config.gtmContainerId?.trim();
+  if (!useGtm && config.gaEnabled && config.gaMeasurementId?.trim() && typeof window.gtag !== "function") return false;
+  return true;
+}
+
+/**
  * Fires a standardized e-commerce event across:
  * 1) Meta Browser Pixel (`fbq('track', event, data, { eventID })`)
  * 2) Google Analytics 4 / GTM (`gtag` / `dataLayer`)
@@ -176,6 +189,9 @@ export function trackEvent(
   }
 
   // 2. Google Analytics 4 / Google Tag Manager (GA4 Ecommerce Data Layer Schema)
+  //    - If a GTM container is configured, GTM owns GA4: we ONLY push to dataLayer
+  //      (avoids double counting with a GA4 tag inside the container).
+  //    - Otherwise, if GA4 is enabled directly, we send events via gtag().
   const gaEventMap: Record<TrackingEventName, string> = {
     PageView: "page_view",
     ViewContent: "view_item",
@@ -187,6 +203,7 @@ export function trackEvent(
     CompleteRegistration: "sign_up",
   };
   const gaEventName = gaEventMap[eventName] || eventName;
+  const useGtm = !!config?.gtmContainerId?.trim();
 
   const isGaEcommerceEvent =
     eventName === "ViewContent" ||
@@ -202,63 +219,83 @@ export function trackEvent(
     quantity: Number(c.quantity ?? 1),
   }));
 
-  if (isGaEcommerceEvent) {
+  const pageParams = {
+    page_location: window.location.href,
+    page_path: window.location.pathname + window.location.search,
+    page_title: document.title,
+  };
+
+  if (useGtm) {
     try {
       window.dataLayer = window.dataLayer || [];
-      // Clear previous ecommerce object per GA4 GTM best practices
-      window.dataLayer.push({ ecommerce: null });
 
-      if (gaEventName === "purchase") {
+      if (isGaEcommerceEvent) {
+        // Clear previous ecommerce object per GA4 GTM best practices
+        window.dataLayer.push({ ecommerce: null });
+
+        if (gaEventName === "purchase") {
+          window.dataLayer.push({
+            event: "purchase",
+            event_id: eventId,
+            ecommerce: {
+              transaction_id: String(
+                customData.order_id || options.orderNumber || options.orderId || ""
+              ),
+              value: Number((customData.value ?? 0).toFixed(2)),
+              shipping: Number((customData.shipping ?? 0).toFixed(2)),
+              tax: Number((customData.tax ?? 0).toFixed(2)),
+              currency: customData.currency || "BDT",
+              items: gaItems,
+            },
+          });
+        } else {
+          window.dataLayer.push({
+            event: gaEventName,
+            event_id: eventId,
+            ecommerce: {
+              currency: customData.currency || "BDT",
+              value: Number((customData.value ?? 0).toFixed(2)),
+              items: gaItems,
+            },
+          });
+        }
+      } else if (eventName === "PageView") {
+        window.dataLayer.push({ event: "page_view", event_id: eventId, ...pageParams });
+      } else if (eventName === "Search") {
         window.dataLayer.push({
-          event: "purchase",
-          ecommerce: {
-            transaction_id: String(
-              customData.order_id || options.orderNumber || options.orderId || ""
-            ),
-            value: Number((customData.value ?? 0).toFixed(2)),
-            shipping: Number((customData.shipping ?? 0).toFixed(2)),
-            tax: Number((customData.tax ?? 0).toFixed(2)),
-            currency: customData.currency || "BDT",
-            items: gaItems,
-          },
+          event: "search",
+          event_id: eventId,
+          search_term: customData.search_string,
         });
-      } else {
-        window.dataLayer.push({
-          event: gaEventName,
-          ecommerce: {
-            currency: customData.currency || "BDT",
-            value: Number((customData.value ?? 0).toFixed(2)),
-            items: gaItems,
-          },
-        });
+      } else if (eventName === "CompleteRegistration") {
+        window.dataLayer.push({ event: "sign_up", event_id: eventId, method: "email" });
       }
     } catch {
       // ignore dataLayer errors
     }
-  }
-
-  // Direct gtag.js fallback (when GA4 Measurement ID is configured directly without GTM)
-  if (typeof window.gtag === "function" && config?.gaEnabled) {
+  } else if (typeof window.gtag === "function" && config?.gaEnabled) {
+    // Direct gtag.js (GA4 Measurement ID configured without GTM)
     try {
-      window.gtag("event", gaEventName, {
-        event_id: eventId,
-        currency: customData.currency || "BDT",
-        value:
-          customData.value !== undefined
-            ? Number(customData.value.toFixed(2))
-            : undefined,
-        transaction_id: customData.order_id || options.orderNumber,
-        shipping:
-          customData.shipping !== undefined
-            ? Number(customData.shipping.toFixed(2))
-            : undefined,
-        tax:
-          customData.tax !== undefined
-            ? Number(customData.tax.toFixed(2))
-            : undefined,
-        search_term: customData.search_string,
-        items: gaItems.length > 0 ? gaItems : undefined,
-      });
+      const params: Record<string, any> = { event_id: eventId };
+      if (eventName === "PageView") {
+        Object.assign(params, pageParams);
+      } else if (eventName === "Search") {
+        params.search_term = customData.search_string;
+      } else if (eventName === "CompleteRegistration") {
+        params.method = "email";
+      } else if (isGaEcommerceEvent) {
+        params.currency = customData.currency || "BDT";
+        params.value = Number((customData.value ?? 0).toFixed(2));
+        params.items = gaItems;
+        if (eventName === "Purchase") {
+          params.transaction_id = String(
+            customData.order_id || options.orderNumber || options.orderId || ""
+          );
+          params.shipping = Number((customData.shipping ?? 0).toFixed(2));
+          params.tax = Number((customData.tax ?? 0).toFixed(2));
+        }
+      }
+      window.gtag("event", gaEventName, params);
     } catch {
       // ignore gtag errors
     }
@@ -276,6 +313,9 @@ export function trackEvent(
         Search: "Search",
         CompleteRegistration: "CompleteRegistration",
       };
+      if (eventName === "PageView" && typeof window.ttq.page === "function") {
+        window.ttq.page();
+      }
       const ttEvent = ttEventMap[eventName];
       if (ttEvent) {
         window.ttq.track(
