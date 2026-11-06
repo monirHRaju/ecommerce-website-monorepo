@@ -18,6 +18,8 @@ export const CONSENT_STORAGE_KEY = "deshio_cookie_consent";
 
 export interface AnalyticsCustomData {
   value?: number;
+  shipping?: number;
+  tax?: number;
   currency?: string;
   content_ids?: string[];
   content_type?: string;
@@ -25,6 +27,7 @@ export interface AnalyticsCustomData {
   content_category?: string;
   contents?: Array<{
     id: string;
+    item_name?: string;
     quantity: number;
     item_price?: number;
   }>;
@@ -118,6 +121,19 @@ export function hasTrackingConsent(config?: PublicTrackingConfig | null): boolea
 }
 
 /**
+ * True once every enabled provider has defined its global (fbq / gtag / ttq),
+ * so the first PageView is not lost to script-loading race conditions.
+ */
+export function isTrackingReady(config?: PublicTrackingConfig | null): boolean {
+  if (typeof window === "undefined" || !config) return true;
+  if (config.metaEnabled && config.metaPixelId?.trim() && typeof window.fbq !== "function") return false;
+  if (config.tiktokEnabled && config.tiktokPixelId?.trim() && !window.ttq) return false;
+  const useGtm = !!config.gtmContainerId?.trim();
+  if (!useGtm && config.gaEnabled && config.gaMeasurementId?.trim() && typeof window.gtag !== "function") return false;
+  return true;
+}
+
+/**
  * Fires a standardized e-commerce event across:
  * 1) Meta Browser Pixel (`fbq('track', event, data, { eventID })`)
  * 2) Google Analytics 4 / GTM (`gtag` / `dataLayer`)
@@ -145,40 +161,141 @@ export function trackEvent(
     ...(options.customData || {}),
   };
 
+  // Sanitized payload for Meta Pixel & Meta Conversions API
+  const metaCustomData: AnalyticsCustomData = {
+    value: customData.value,
+    currency: customData.currency || "BDT",
+    content_ids: customData.content_ids,
+    content_type: customData.content_type,
+    content_name: customData.content_name,
+    content_category: customData.content_category,
+    contents: customData.contents?.map((c) => ({
+      id: c.id,
+      quantity: c.quantity,
+      item_price: c.item_price,
+    })),
+    num_items: customData.num_items,
+    order_id: customData.order_id,
+    search_string: customData.search_string,
+  };
+
   // 1. Meta Browser Pixel with eventID deduplication
   if (typeof window.fbq === "function" && (config?.metaEnabled ?? true)) {
     try {
-      window.fbq("track", eventName, customData, { eventID: eventId });
+      window.fbq("track", eventName, metaCustomData, { eventID: eventId });
     } catch {
       // ignore pixel errors
     }
   }
 
-  // 2. Google Analytics 4 / GTM
-  if (typeof window.gtag === "function" && config?.gaEnabled) {
+  // 2. Google Analytics 4 / Google Tag Manager (GA4 Ecommerce Data Layer Schema)
+  //    - If a GTM container is configured, GTM owns GA4: we ONLY push to dataLayer
+  //      (avoids double counting with a GA4 tag inside the container).
+  //    - Otherwise, if GA4 is enabled directly, we send events via gtag().
+  const gaEventMap: Record<TrackingEventName, string> = {
+    PageView: "page_view",
+    ViewContent: "view_item",
+    AddToCart: "add_to_cart",
+    InitiateCheckout: "begin_checkout",
+    AddPaymentInfo: "add_payment_info",
+    Purchase: "purchase",
+    Search: "search",
+    CompleteRegistration: "sign_up",
+  };
+  const gaEventName = gaEventMap[eventName] || eventName;
+  const useGtm = !!config?.gtmContainerId?.trim();
+
+  const isGaEcommerceEvent =
+    eventName === "ViewContent" ||
+    eventName === "AddToCart" ||
+    eventName === "InitiateCheckout" ||
+    eventName === "AddPaymentInfo" ||
+    eventName === "Purchase";
+
+  const gaItems = (customData.contents || []).map((c) => ({
+    item_id: String(c.id),
+    item_name: String(c.item_name || customData.content_name || c.id),
+    price: Number((c.item_price ?? 0).toFixed(2)),
+    quantity: Number(c.quantity ?? 1),
+  }));
+
+  const pageParams = {
+    page_location: window.location.href,
+    page_path: window.location.pathname + window.location.search,
+    page_title: document.title,
+  };
+
+  if (useGtm) {
     try {
-      const gaEventMap: Record<TrackingEventName, string> = {
-        PageView: "page_view",
-        ViewContent: "view_item",
-        AddToCart: "add_to_cart",
-        InitiateCheckout: "begin_checkout",
-        AddPaymentInfo: "add_payment_info",
-        Purchase: "purchase",
-        Search: "search",
-        CompleteRegistration: "sign_up",
-      };
-      window.gtag("event", gaEventMap[eventName] || eventName, {
-        event_id: eventId,
-        currency: customData.currency || "BDT",
-        value: customData.value,
-        transaction_id: customData.order_id,
-        search_term: customData.search_string,
-        items: customData.contents?.map((c) => ({
-          item_id: c.id,
-          quantity: c.quantity,
-          price: c.item_price,
-        })),
-      });
+      window.dataLayer = window.dataLayer || [];
+
+      if (isGaEcommerceEvent) {
+        // Clear previous ecommerce object per GA4 GTM best practices
+        window.dataLayer.push({ ecommerce: null });
+
+        if (gaEventName === "purchase") {
+          window.dataLayer.push({
+            event: "purchase",
+            event_id: eventId,
+            ecommerce: {
+              transaction_id: String(
+                customData.order_id || options.orderNumber || options.orderId || ""
+              ),
+              value: Number((customData.value ?? 0).toFixed(2)),
+              shipping: Number((customData.shipping ?? 0).toFixed(2)),
+              tax: Number((customData.tax ?? 0).toFixed(2)),
+              currency: customData.currency || "BDT",
+              items: gaItems,
+            },
+          });
+        } else {
+          window.dataLayer.push({
+            event: gaEventName,
+            event_id: eventId,
+            ecommerce: {
+              currency: customData.currency || "BDT",
+              value: Number((customData.value ?? 0).toFixed(2)),
+              items: gaItems,
+            },
+          });
+        }
+      } else if (eventName === "PageView") {
+        window.dataLayer.push({ event: "page_view", event_id: eventId, ...pageParams });
+      } else if (eventName === "Search") {
+        window.dataLayer.push({
+          event: "search",
+          event_id: eventId,
+          search_term: customData.search_string,
+        });
+      } else if (eventName === "CompleteRegistration") {
+        window.dataLayer.push({ event: "sign_up", event_id: eventId, method: "email" });
+      }
+    } catch {
+      // ignore dataLayer errors
+    }
+  } else if (typeof window.gtag === "function" && config?.gaEnabled) {
+    // Direct gtag.js (GA4 Measurement ID configured without GTM)
+    try {
+      const params: Record<string, any> = { event_id: eventId };
+      if (eventName === "PageView") {
+        Object.assign(params, pageParams);
+      } else if (eventName === "Search") {
+        params.search_term = customData.search_string;
+      } else if (eventName === "CompleteRegistration") {
+        params.method = "email";
+      } else if (isGaEcommerceEvent) {
+        params.currency = customData.currency || "BDT";
+        params.value = Number((customData.value ?? 0).toFixed(2));
+        params.items = gaItems;
+        if (eventName === "Purchase") {
+          params.transaction_id = String(
+            customData.order_id || options.orderNumber || options.orderId || ""
+          );
+          params.shipping = Number((customData.shipping ?? 0).toFixed(2));
+          params.tax = Number((customData.tax ?? 0).toFixed(2));
+        }
+      }
+      window.gtag("event", gaEventName, params);
     } catch {
       // ignore gtag errors
     }
@@ -196,6 +313,9 @@ export function trackEvent(
         Search: "Search",
         CompleteRegistration: "CompleteRegistration",
       };
+      if (eventName === "PageView" && typeof window.ttq.page === "function") {
+        window.ttq.page();
+      }
       const ttEvent = ttEventMap[eventName];
       if (ttEvent) {
         window.ttq.track(
@@ -235,7 +355,7 @@ export function trackEvent(
           fbp,
           fbc,
         },
-        customData,
+        customData: metaCustomData,
       }),
     }).catch(() => {});
   }

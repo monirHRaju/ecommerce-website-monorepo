@@ -7,6 +7,7 @@ import { PublicTrackingConfig } from "@/lib/settings";
 import {
   CONSENT_STORAGE_KEY,
   getMetaBrowserIdentifiers,
+  isTrackingReady,
   trackEvent,
 } from "@/lib/analytics";
 import { Cookie } from "lucide-react";
@@ -18,8 +19,9 @@ interface TrackingScriptsProps {
 export default function TrackingScripts({ config }: TrackingScriptsProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Start as "pending" so no tracking script loads before stored consent is read
   const [consentState, setConsentState] = useState<"granted" | "denied" | "pending">(
-    "granted"
+    "pending"
   );
   const [showBanner, setShowBanner] = useState(false);
   const lastTrackedUrl = useRef<string>("");
@@ -27,6 +29,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
   // Sync config into window global and check stored cookie consent
   useEffect(() => {
     if (typeof window === "undefined") return;
+    window.dataLayer = window.dataLayer || [];
     window.__DESHIO_TRACKING_CONFIG__ = config;
     getMetaBrowserIdentifiers();
 
@@ -60,14 +63,20 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
     }`;
 
     if (lastTrackedUrl.current === fullPath) return;
-    lastTrackedUrl.current = fullPath;
 
-    const timer = setTimeout(() => {
-      trackEvent("PageView");
-    }, 150);
+    // Wait until provider scripts (fbq / gtag / ttq) are ready, up to ~8s
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts += 1;
+      if (isTrackingReady(window.__DESHIO_TRACKING_CONFIG__) || attempts > 80) {
+        clearInterval(timer);
+        lastTrackedUrl.current = fullPath;
+        trackEvent("PageView");
+      }
+    }, 100);
 
-    return () => clearTimeout(timer);
-  }, [pathname, searchParams, consentState]);
+    return () => clearInterval(timer);
+  }, [pathname, searchParams, consentState, config]);
 
   const handleAcceptConsent = () => {
     try {
@@ -77,9 +86,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
     }
     setConsentState("granted");
     setShowBanner(false);
-    setTimeout(() => {
-      trackEvent("PageView");
-    }, 200);
+    // PageView fires from the effect above once scripts finish loading
   };
 
   const handleDeclineConsent = () => {
@@ -95,7 +102,10 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
   const canLoadScripts = consentState === "granted";
   const metaPixelId = config?.metaEnabled ? config.metaPixelId?.trim() : "";
   const gaMeasurementId = config?.gaEnabled ? config.gaMeasurementId?.trim() : "";
-  const gtmContainerId = config?.gaEnabled ? config.gtmContainerId?.trim() : "";
+  const gtmContainerId = config?.gtmContainerId?.trim() || "";
+  // When GTM is configured it owns GA4 (configure the GA4 tag inside the container);
+  // loading gtag.js as well would double count every event.
+  const loadDirectGa = !!gaMeasurementId && !gtmContainerId;
   const tiktokPixelId = config?.tiktokEnabled ? config.tiktokPixelId?.trim() : "";
 
   return (
@@ -119,7 +129,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
       )}
 
       {/* 2. Google Analytics 4 (gtag.js) */}
-      {canLoadScripts && gaMeasurementId && (
+      {canLoadScripts && loadDirectGa && (
         <>
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(
@@ -141,15 +151,28 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
 
       {/* 3. Google Tag Manager (Optional) */}
       {canLoadScripts && gtmContainerId && (
-        <Script id="gtm-init" strategy="afterInteractive">
-          {`
-            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-            })(window,document,'script','dataLayer','${gtmContainerId}');
-          `}
-        </Script>
+        <>
+          <Script id="gtm-init" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+              })(window,document,'script','dataLayer','${gtmContainerId}');
+            `}
+          </Script>
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(
+                gtmContainerId
+              )}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        </>
       )}
 
       {/* 4. TikTok Browser Pixel */}
@@ -159,7 +182,6 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
             !function (w, d, t) {
               w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
               ttq.load('${tiktokPixelId}');
-              ttq.page();
             }(window, document, 'ttq');
           `}
         </Script>
