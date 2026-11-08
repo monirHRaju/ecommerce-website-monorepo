@@ -58,13 +58,20 @@ export interface SiteSettingsData {
 
 export type TrackingEventName =
   | "PageView"
+  | "ViewItemList"
+  | "SelectItem"
   | "ViewContent"
+  | "AddToWishlist"
   | "AddToCart"
+  | "RemoveFromCart"
+  | "ViewCart"
   | "InitiateCheckout"
+  | "AddShippingInfo"
   | "AddPaymentInfo"
   | "Purchase"
   | "Search"
-  | "CompleteRegistration";
+  | "CompleteRegistration"
+  | "Login";
 
 export interface PublicTrackingConfig {
   metaEnabled: boolean;
@@ -77,13 +84,13 @@ export interface PublicTrackingConfig {
   tiktokPixelId: string;
   requireCookieConsent: boolean;
   consentBannerText: string;
-  events: Record<TrackingEventName, boolean>;
+  events: Partial<Record<TrackingEventName, boolean>>;
 }
 
 export async function getTrackingConfig(): Promise<PublicTrackingConfig | null> {
   try {
     const res = await fetch(`${API_BASE}/tracking/config`, {
-      next: { revalidate: 60, tags: ["tracking-config"] },
+      cache: "no-store",
     });
     if (res.ok) {
       const json = await res.json();

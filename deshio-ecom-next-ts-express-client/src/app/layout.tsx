@@ -107,7 +107,9 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: "window.dataLayer = window.dataLayer || [];",
+            __html: `window.dataLayer = window.dataLayer || []; window.__DESHIO_TRACKING_CONFIG__ = ${JSON.stringify(
+              trackingConfig ?? null
+            )};`,
           }}
         />
       </head>

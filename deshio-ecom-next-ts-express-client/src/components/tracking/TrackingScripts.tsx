@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
+import { API_BASE } from "@/lib/api";
 import { PublicTrackingConfig } from "@/lib/settings";
 import {
   CONSENT_STORAGE_KEY,
   getMetaBrowserIdentifiers,
-  isTrackingReady,
   trackEvent,
 } from "@/lib/analytics";
 import { Cookie } from "lucide-react";
@@ -19,21 +19,49 @@ interface TrackingScriptsProps {
 export default function TrackingScripts({ config }: TrackingScriptsProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // Start as "pending" so no tracking script loads before stored consent is read
+  const [activeConfig, setActiveConfig] = useState<PublicTrackingConfig | null>(
+    config
+  );
+  // Default to "granted" when cookie consent banner is not required so scripts
+  // render immediately on first pass (detected by Tag Assistant & Meta Pixel Helper)
   const [consentState, setConsentState] = useState<"granted" | "denied" | "pending">(
-    "pending"
+    config?.requireCookieConsent ? "pending" : "granted"
   );
   const [showBanner, setShowBanner] = useState(false);
   const lastTrackedUrl = useRef<string>("");
 
-  // Sync config into window global and check stored cookie consent
+  // Sync SSR config + fetch fresh config from API so Admin changes apply immediately
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.dataLayer = window.dataLayer || [];
-    window.__DESHIO_TRACKING_CONFIG__ = config;
+    if (config) {
+      window.__DESHIO_TRACKING_CONFIG__ = config;
+      setActiveConfig(config);
+    }
     getMetaBrowserIdentifiers();
 
-    if (!config?.requireCookieConsent) {
+    let cancelled = false;
+    fetch(`${API_BASE}/tracking/config`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.data) {
+          window.__DESHIO_TRACKING_CONFIG__ = json.data;
+          setActiveConfig(json.data);
+        }
+      })
+      .catch(() => {
+        // keep SSR config
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [config]);
+
+  // Evaluate cookie consent state whenever activeConfig updates
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!activeConfig?.requireCookieConsent) {
       setConsentState("granted");
       setShowBanner(false);
       return;
@@ -51,7 +79,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
     } catch {
       setConsentState("granted");
     }
-  }, [config]);
+  }, [activeConfig]);
 
   // Fire PageView on initial load and Next.js App Router route transitions
   useEffect(() => {
@@ -63,20 +91,10 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
     }`;
 
     if (lastTrackedUrl.current === fullPath) return;
+    lastTrackedUrl.current = fullPath;
 
-    // Wait until provider scripts (fbq / gtag / ttq) are ready, up to ~8s
-    let attempts = 0;
-    const timer = setInterval(() => {
-      attempts += 1;
-      if (isTrackingReady(window.__DESHIO_TRACKING_CONFIG__) || attempts > 80) {
-        clearInterval(timer);
-        lastTrackedUrl.current = fullPath;
-        trackEvent("PageView");
-      }
-    }, 100);
-
-    return () => clearInterval(timer);
-  }, [pathname, searchParams, consentState, config]);
+    trackEvent("PageView");
+  }, [pathname, searchParams, consentState]);
 
   const handleAcceptConsent = () => {
     try {
@@ -86,7 +104,6 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
     }
     setConsentState("granted");
     setShowBanner(false);
-    // PageView fires from the effect above once scripts finish loading
   };
 
   const handleDeclineConsent = () => {
@@ -100,56 +117,36 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
   };
 
   const canLoadScripts = consentState === "granted";
-  const metaPixelId = config?.metaEnabled ? config.metaPixelId?.trim() : "";
-  const gaMeasurementId = config?.gaEnabled ? config.gaMeasurementId?.trim() : "";
-  const gtmContainerId = config?.gtmContainerId?.trim() || "";
-  // When GTM is configured it owns GA4 (configure the GA4 tag inside the container);
-  // loading gtag.js as well would double count every event.
-  const loadDirectGa = !!gaMeasurementId && !gtmContainerId;
-  const tiktokPixelId = config?.tiktokEnabled ? config.tiktokPixelId?.trim() : "";
+
+  const metaPixelId =
+    (activeConfig?.metaEnabled ?? true)
+      ? activeConfig?.metaPixelId?.trim() ||
+        process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() ||
+        ""
+      : "";
+
+  const gaMeasurementId =
+    activeConfig?.gaEnabled || process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+      ? activeConfig?.gaMeasurementId?.trim() ||
+        process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() ||
+        ""
+      : "";
+
+  const gtmContainerId =
+    activeConfig?.gtmContainerId?.trim() ||
+    process.env.NEXT_PUBLIC_GTM_ID?.trim() ||
+    "";
+
+  const tiktokPixelId =
+    activeConfig?.tiktokEnabled || process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID
+      ? activeConfig?.tiktokPixelId?.trim() ||
+        process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID?.trim() ||
+        ""
+      : "";
 
   return (
     <>
-      {/* 1. Meta (Facebook) Browser Pixel (autoPageView disabled so trackEvent("PageView") deduplicates with CAPI) */}
-      {canLoadScripts && metaPixelId && (
-        <Script id="meta-pixel-init" strategy="afterInteractive">
-          {`
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq.disablePushState = true;
-            fbq('init', '${metaPixelId}');
-          `}
-        </Script>
-      )}
-
-      {/* 2. Google Analytics 4 (gtag.js) */}
-      {canLoadScripts && loadDirectGa && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(
-              gaMeasurementId
-            )}`}
-            strategy="afterInteractive"
-          />
-          <Script id="ga4-init" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              window.gtag = gtag;
-              gtag('js', new Date());
-              gtag('config', '${gaMeasurementId}', { send_page_view: false });
-            `}
-          </Script>
-        </>
-      )}
-
-      {/* 3. Google Tag Manager (Optional) */}
+      {/* 1. Google Tag Manager (GTM Container + Data Layer Bridge) */}
       {canLoadScripts && gtmContainerId && (
         <>
           <Script id="gtm-init" strategy="afterInteractive">
@@ -172,6 +169,59 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
               style={{ display: "none", visibility: "hidden" }}
             />
           </noscript>
+        </>
+      )}
+
+      {/* 2. Meta (Facebook) Browser Pixel (autoPageView disabled so trackEvent("PageView") deduplicates with CAPI) */}
+      {canLoadScripts && metaPixelId && (
+        <>
+          <Script id="meta-pixel-init" strategy="afterInteractive">
+            {`
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq.disablePushState = true;
+              fbq('init', '${metaPixelId}');
+            `}
+          </Script>
+          <noscript>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              height="1"
+              width="1"
+              style={{ display: "none" }}
+              src={`https://www.facebook.com/tr?id=${encodeURIComponent(
+                metaPixelId
+              )}&ev=PageView&noscript=1`}
+              alt=""
+            />
+          </noscript>
+        </>
+      )}
+
+      {/* 3. Google Analytics 4 (gtag.js) */}
+      {canLoadScripts && gaMeasurementId && (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(
+              gaMeasurementId
+            )}`}
+            strategy="afterInteractive"
+          />
+          <Script id="ga4-init" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              window.gtag = gtag;
+              gtag('js', new Date());
+              gtag('config', '${gaMeasurementId}', { send_page_view: false });
+            `}
+          </Script>
         </>
       )}
 
@@ -199,7 +249,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
                 Privacy & Cookie Preferences
               </h4>
               <p className="text-xs text-stone-300 leading-relaxed">
-                {config?.consentBannerText ||
+                {activeConfig?.consentBannerText ||
                   "We use cookies and analytics pixels to personalize your shopping experience and measure our campaigns."}
               </p>
             </div>

@@ -3,6 +3,7 @@ import { API_BASE } from "@/lib/api";
 import { Product, Category, Meta } from "@/types";
 import ProductCard from "@/components/products/ProductCard";
 import MobileFilterToggle from "@/components/products/MobileFilterToggle";
+import ProductListTracker from "@/components/tracking/ProductListTracker";
 import {
   Search,
   X,
@@ -668,6 +669,11 @@ export default async function CatalogView({
               </div>
             ) : (
               <>
+                <ProductListTracker
+                  products={products}
+                  listId={category || gender || "catalog"}
+                  listName={title || currentCategory?.name || "Product Catalog"}
+                />
                 {/* 2 per row on mobile */}
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6">
                   {products.map((product) => (

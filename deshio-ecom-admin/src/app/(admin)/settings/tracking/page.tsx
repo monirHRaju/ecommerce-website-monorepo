@@ -580,27 +580,41 @@ export default function MarketingTrackingSettingsPage() {
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
-                GA4 Measurement ID
-              </label>
-              <input
-                type="text"
-                value={gaMeasurementId}
-                onChange={(e) => setGaMeasurementId(e.target.value)}
-                placeholder="G-XXXXXXXXXX"
-                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2 text-xs text-gray-900 dark:text-white font-mono"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
-                GTM Container ID (Optional)
+                GTM Container ID (Recommended)
               </label>
               <input
                 type="text"
                 value={gtmContainerId}
-                onChange={(e) => setGtmContainerId(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setGtmContainerId(val);
+                  if (val.trim()) setGaEnabled(true);
+                }}
                 placeholder="GTM-XXXXXXX"
                 className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2 text-xs text-gray-900 dark:text-white font-mono"
               />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Loads Google Tag Manager container and receives all GA4 & Meta e-commerce <code className="font-mono">window.dataLayer</code> events automatically.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
+                Direct GA4 Measurement ID (Optional)
+              </label>
+              <input
+                type="text"
+                value={gaMeasurementId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setGaMeasurementId(val);
+                  if (val.trim()) setGaEnabled(true);
+                }}
+                placeholder="G-XXXXXXXXXX"
+                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2 text-xs text-gray-900 dark:text-white font-mono"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Leave blank if GA4 is already configured as a tag inside your GTM container.
+              </p>
             </div>
           </div>
         </div>
@@ -719,6 +733,133 @@ export default function MarketingTrackingSettingsPage() {
               </label>
             );
           })}
+        </div>
+      </div>
+
+      {/* ── GTM & GA4 E-Commerce Data Layer Reference for Digital Marketers ── */}
+      <div className="p-6 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs space-y-5">
+        <div className="border-b border-gray-100 dark:border-gray-800 pb-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                Google Tag Manager (GTM) &amp; Data Layer Specification
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Standard GA4 + Meta CAPI e-commerce events are pushed unconditionally to{" "}
+                <code className="font-mono">window.dataLayer</code> on every storefront action.
+              </p>
+            </div>
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+              DataLayer Active (GA4 + Meta Schema)
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
+          <div className="space-y-3">
+            <h3 className="font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              1. GTM Custom Event Triggers (<code className="font-mono">event</code>)
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "page_view",
+                "view_item_list",
+                "select_item",
+                "view_item",
+                "add_to_wishlist",
+                "add_to_cart",
+                "remove_from_cart",
+                "view_cart",
+                "begin_checkout",
+                "add_shipping_info",
+                "add_payment_info",
+                "purchase",
+                "search",
+                "sign_up",
+                "login",
+              ].map((evName) => (
+                <code
+                  key={evName}
+                  className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-mono text-[11px] border border-gray-200 dark:border-gray-700"
+                >
+                  {evName}
+                </code>
+              ))}
+            </div>
+
+            <h3 className="font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 pt-2">
+              2. GTM Data Layer Variables (DLV Paths)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px]">
+              <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700">
+                <div className="font-bold text-gray-900 dark:text-white mb-1 font-sans">
+                  GA4 &amp; Order Variables
+                </div>
+                <div className="text-gray-600 dark:text-gray-300 space-y-0.5">
+                  <div>event_id</div>
+                  <div>ecommerce.currency</div>
+                  <div>ecommerce.value</div>
+                  <div>ecommerce.transaction_id</div>
+                  <div>ecommerce.shipping</div>
+                  <div>ecommerce.tax</div>
+                  <div>ecommerce.coupon</div>
+                  <div>ecommerce.items</div>
+                </div>
+              </div>
+              <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700">
+                <div className="font-bold text-gray-900 dark:text-white mb-1 font-sans">
+                  Meta &amp; Customer Variables
+                </div>
+                <div className="text-gray-600 dark:text-gray-300 space-y-0.5">
+                  <div>content_ids / contents</div>
+                  <div>user_data.phone_number</div>
+                  <div>user_data.email</div>
+                  <div>user_data.first_name</div>
+                  <div>user_data.last_name</div>
+                  <div>user_data.city / user_data.region</div>
+                  <div>user_data.country</div>
+                  <div>user_data.fbp / user_data.fbc</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              3. Sample <code className="font-mono">purchase</code> DataLayer Push
+            </h3>
+            <pre className="p-3.5 rounded-xl bg-gray-950 text-emerald-300 font-mono text-[11px] overflow-x-auto leading-relaxed">
+{`{
+  "event": "purchase",
+  "event_id": "purchase_9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "ecommerce": {
+    "transaction_id": "ORD-20261108-0042",
+    "value": 2550,
+    "shipping": 60,
+    "tax": 0,
+    "currency": "BDT",
+    "items": [{
+      "item_id": "SKU-PNJ-01",
+      "item_name": "Artisanal Cotton Panjabi",
+      "item_brand": "Deshio",
+      "item_variant": "L / Maroon",
+      "price": 2490,
+      "quantity": 1,
+      "currency": "BDT"
+    }]
+  },
+  "content_ids": ["SKU-PNJ-01"],
+  "content_type": "product",
+  "user_data": {
+    "phone_number": "+8801712345678",
+    "first_name": "Rahim",
+    "city": "Dhaka",
+    "country": "BD",
+    "fbp": "fb.1.1731000000.123456789"
+  }
+}`}
+            </pre>
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Product } from "@/types";
 import ProductCard from "@/components/products/ProductCard";
+import ProductListTracker from "@/components/tracking/ProductListTracker";
 
 interface HomeSectionProps {
   title: string;
@@ -34,6 +35,11 @@ export default function HomeSection({ title, href, products }: HomeSectionProps)
   return (
     <section className="py-4 sm:py-8">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <ProductListTracker
+          products={products}
+          listId={href.replace(/^\//, "") || "home_section"}
+          listName={title}
+        />
         <SectionHeader title={title} href={href} />
         {/* 2 per row on mobile */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">

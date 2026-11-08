@@ -11,6 +11,7 @@ import { discountedPrice, formatPrice } from "@/utils/formatPrice";
 import { isProductOutOfStock, pickDefaultVariant } from "@/utils/variants";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { trackEvent } from "@/lib/analytics";
 import api from "@/lib/axios";
 
 interface ProductCardProps {
@@ -40,6 +41,41 @@ export default function ProductCard({ product }: ProductCardProps) {
     : [];
 
   const [orderingNow, setOrderingNow] = useState(false);
+
+  const categoryName =
+    typeof product.category === "object" ? product.category?.name : undefined;
+  const primarySku = defaultVariant?.sku || product._id;
+  const variantLabel = [defaultVariant?.size, defaultVariant?.color]
+    .filter(Boolean)
+    .join(" / ");
+  const discountAmount = Math.max(0, basePrice - finalPrice);
+
+  const handleSelectProduct = () => {
+    trackEvent("SelectItem", {
+      skipServerForward: true,
+      customData: {
+        value: finalPrice,
+        currency: "BDT",
+        content_ids: [primarySku],
+        content_type: "product",
+        content_name: product.title,
+        content_category: categoryName,
+        contents: [
+          {
+            id: primarySku,
+            item_name: product.title,
+            item_brand: product.brand || "Deshio",
+            item_category: categoryName,
+            item_variant: variantLabel || undefined,
+            quantity: 1,
+            item_price: finalPrice,
+            discount: discountAmount > 0 ? discountAmount : undefined,
+          },
+        ],
+        num_items: 1,
+      },
+    });
+  };
 
   const addToCartInternal = async () => {
     await addItem(
@@ -100,6 +136,37 @@ export default function ProductCard({ product }: ProductCardProps) {
       const added = res.data.message?.toLowerCase().includes("added");
       setIsWishlisted(added);
       updateUser({ ...user, wishlist: res.data.data.wishlist ?? [] });
+      if (added) {
+        trackEvent("AddToWishlist", {
+          userData: {
+            email: user.email,
+            phone: user.phone,
+            name: user.name,
+            externalId: user._id,
+          },
+          customData: {
+            value: finalPrice,
+            currency: "BDT",
+            content_ids: [primarySku],
+            content_type: "product",
+            content_name: product.title,
+            content_category: categoryName,
+            contents: [
+              {
+                id: primarySku,
+                item_name: product.title,
+                item_brand: product.brand || "Deshio",
+                item_category: categoryName,
+                item_variant: variantLabel || undefined,
+                quantity: 1,
+                item_price: finalPrice,
+                discount: discountAmount > 0 ? discountAmount : undefined,
+              },
+            ],
+            num_items: 1,
+          },
+        });
+      }
       toast.success(added ? "Saved to wishlist" : "Removed from wishlist");
     } catch {
       toast.error("Failed to update wishlist");
@@ -111,7 +178,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="group relative flex flex-col h-full bg-white rounded-lg sm:rounded-xl border border-stone-200/80 overflow-hidden sm:hover:shadow-lg sm:hover:border-stone-300 transition-all duration-300">
       {/* ── Visual Media Container (Portrait 3:4) ─────────────────────── */}
-      <Link href={productUrl} className="relative block aspect-[3/4] w-full bg-stone-100 overflow-hidden">
+      <Link href={productUrl} onClick={handleSelectProduct} className="relative block aspect-[3/4] w-full bg-stone-100 overflow-hidden">
         {/* Primary Image */}
         <Image
           src={product.images?.[0] || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80"}
@@ -203,7 +270,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Title */}
-        <Link href={productUrl} className="block group-hover:text-amber-800 transition-colors">
+        <Link href={productUrl} onClick={handleSelectProduct} className="block group-hover:text-amber-800 transition-colors">
           <h3 className="font-medium text-[13px] sm:text-sm text-stone-900 leading-snug line-clamp-2 min-h-[2.1rem] sm:min-h-[2.5rem]">
             {product.title}
           </h3>

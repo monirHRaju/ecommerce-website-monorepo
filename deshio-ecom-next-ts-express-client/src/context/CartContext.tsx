@@ -219,6 +219,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         typeof product.category === "object"
           ? product.category?.name
           : undefined;
+      const variantLabel = [variant?.size, variant?.color]
+        .filter(Boolean)
+        .join(" / ");
+      const discountAmount = Math.max(0, basePrice - finalPrice);
 
       trackEvent("AddToCart", {
         userData: user
@@ -240,8 +244,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             {
               id: contentId,
               item_name: product.title,
+              item_brand: product.brand || "Deshio",
+              item_category: categoryName,
+              item_variant: variantLabel || undefined,
               quantity: qty,
               item_price: finalPrice,
+              discount: discountAmount > 0 ? discountAmount : undefined,
             },
           ],
           num_items: qty,
@@ -406,6 +414,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // ── Remove item ─────────────────────────────────────────────────────────────
   const removeItem = useCallback(
     async (itemId: string) => {
+      const targetItem = items.find((i) => i._id === itemId);
+      if (targetItem) {
+        const contentId = targetItem.sku || targetItem.productId;
+        const variantLabel = [targetItem.size, targetItem.color]
+          .filter(Boolean)
+          .join(" / ");
+        trackEvent("RemoveFromCart", {
+          skipServerForward: true,
+          userData: user
+            ? {
+                email: user.email,
+                phone: user.phone,
+                name: user.name,
+                externalId: user._id,
+              }
+            : undefined,
+          customData: {
+            value: targetItem.price * targetItem.quantity,
+            currency: "BDT",
+            content_ids: [contentId],
+            content_type: "product",
+            content_name: targetItem.title,
+            contents: [
+              {
+                id: contentId,
+                item_name: targetItem.title,
+                item_brand: targetItem.brand || "Deshio",
+                item_variant: variantLabel || undefined,
+                quantity: targetItem.quantity,
+                item_price: targetItem.price,
+              },
+            ],
+            num_items: targetItem.quantity,
+          },
+        });
+      }
+
       if (user) {
         await api.delete(`/cart/${itemId}`);
         await fetchAuthCart();
@@ -417,7 +462,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
       }
     },
-    [user, fetchAuthCart]
+    [user, fetchAuthCart, items]
   );
 
   // ── Clear cart ──────────────────────────────────────────────────────────────

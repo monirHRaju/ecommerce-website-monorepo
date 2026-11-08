@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CartItem, useCart } from "@/context/CartContext";
 import EditOptionModal from "@/components/cart/EditOptionModal";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/utils/cn";
 import { formatPrice } from "@/utils/formatPrice";
 import {
@@ -31,6 +32,29 @@ export default function CartSidebar() {
   } = useCart();
   const router = useRouter();
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || items.length === 0) return;
+    trackEvent("ViewCart", {
+      skipServerForward: true,
+      customData: {
+        value: totalPrice,
+        currency: "BDT",
+        content_ids: items.map((i) => i.sku || i.productId),
+        content_type: "product",
+        contents: items.map((i, idx) => ({
+          id: i.sku || i.productId,
+          item_name: i.title,
+          item_brand: i.brand || "Deshio",
+          item_variant: [i.size, i.color].filter(Boolean).join(" / ") || undefined,
+          quantity: i.quantity,
+          item_price: i.price,
+          index: idx,
+        })),
+        num_items: totalItems,
+      },
+    });
+  }, [isOpen, items, totalItems, totalPrice]);
 
   const handleProceed = () => {
     closeCart();
