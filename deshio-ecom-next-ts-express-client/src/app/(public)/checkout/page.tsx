@@ -402,11 +402,14 @@ export default function CheckoutPage() {
         currency: "BDT",
         content_ids: items.map((i) => i.sku || i.productId),
         content_type: "product",
-        contents: items.map((i) => ({
+        contents: items.map((i, idx) => ({
           id: i.sku || i.productId,
           item_name: i.title,
+          item_brand: i.brand || "Deshio",
+          item_variant: [i.size, i.color].filter(Boolean).join(" / ") || undefined,
           quantity: i.quantity,
           item_price: i.price,
+          index: idx,
         })),
         num_items: totalItems,
       },
@@ -479,24 +482,51 @@ export default function CheckoutPage() {
       }));
 
       const contentIds = items.map((i) => i.sku || i.productId);
-      const contents = items.map((i) => ({
+      const contents = items.map((i, idx) => ({
         id: i.sku || i.productId,
         item_name: i.title,
+        item_brand: i.brand || "Deshio",
+        item_variant: [i.size, i.color].filter(Boolean).join(" / ") || undefined,
         quantity: i.quantity,
         item_price: i.price,
+        index: idx,
       }));
+
+      const customerUserData = {
+        name: data.name,
+        phone: data.phone,
+        email: user?.email,
+        city: data.city,
+        thana: data.thana,
+        street: data.street,
+        country: "Bangladesh",
+        externalId: user?._id,
+      };
+
+      // Fire AddShippingInfo event (GA4 ecommerce funnel step)
+      trackEvent("AddShippingInfo", {
+        skipServerForward: true,
+        userData: customerUserData,
+        customData: {
+          value: grandTotal,
+          shipping: deliveryCharge,
+          shipping_tier: selectedZone?.name || data.city,
+          coupon: appliedCoupon?.code,
+          currency: "BDT",
+          content_ids: contentIds,
+          content_type: "product",
+          contents,
+          num_items: totalItems,
+        },
+      });
 
       // Fire AddPaymentInfo event
       trackEvent("AddPaymentInfo", {
-        userData: {
-          name: data.name,
-          phone: data.phone,
-          email: user?.email,
-          city: data.city,
-          country: "Bangladesh",
-        },
+        userData: customerUserData,
         customData: {
           value: grandTotal,
+          payment_type: data.paymentMethod,
+          coupon: appliedCoupon?.code,
           currency: "BDT",
           content_ids: contentIds,
           content_type: "product",
@@ -528,16 +558,18 @@ export default function CheckoutPage() {
         });
         const createdOrder = res.data.data;
 
-        // Fire browser Purchase pixel with identical eventId (skipServerForward because /orders already dispatched Server CAPI)
+        // Fire browser Purchase pixel + dataLayer with identical eventId
         trackEvent("Purchase", {
           eventId: purchaseEventId,
           skipServerForward: true,
           orderId: createdOrder._id,
           orderNumber: createdOrder.orderNumber,
+          userData: customerUserData,
           customData: {
             value: createdOrder.totalAmount ?? grandTotal,
             shipping: createdOrder.deliveryCharge ?? deliveryCharge,
             tax: 0,
+            coupon: appliedCoupon?.code,
             currency: "BDT",
             content_ids: contentIds,
             content_type: "product",
@@ -574,24 +606,27 @@ export default function CheckoutPage() {
         if (result.accountCreated) {
           trackEvent("CompleteRegistration", {
             userData: {
-              name: data.name,
-              phone: data.phone,
-              city: data.city,
-              country: "Bangladesh",
+              ...customerUserData,
+              externalId: result.user?._id,
             },
           });
         }
 
-        // Fire browser Purchase pixel with identical eventId (skipServerForward because /orders/guest-checkout already dispatched Server CAPI)
+        // Fire browser Purchase pixel + dataLayer with identical eventId
         trackEvent("Purchase", {
           eventId: purchaseEventId,
           skipServerForward: true,
           orderId: result.order?._id,
           orderNumber: result.order?.orderNumber,
+          userData: {
+            ...customerUserData,
+            externalId: result.user?._id,
+          },
           customData: {
             value: result.order?.totalAmount ?? grandTotal,
             shipping: result.order?.deliveryCharge ?? deliveryCharge,
             tax: 0,
+            coupon: appliedCoupon?.code,
             currency: "BDT",
             content_ids: contentIds,
             content_type: "product",

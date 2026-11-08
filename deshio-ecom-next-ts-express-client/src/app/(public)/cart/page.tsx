@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CartItem, useCart } from "@/context/CartContext";
 import { formatPrice } from "@/utils/formatPrice";
 import EditOptionModal from "@/components/cart/EditOptionModal";
+import { trackEvent } from "@/lib/analytics";
 import {
   ChevronRight,
   Lock,
@@ -26,6 +27,31 @@ export default function CartPage() {
     useCart();
   const router = useRouter();
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
+  const viewCartTracked = useRef(false);
+
+  useEffect(() => {
+    if (viewCartTracked.current || items.length === 0) return;
+    viewCartTracked.current = true;
+    trackEvent("ViewCart", {
+      skipServerForward: true,
+      customData: {
+        value: totalPrice,
+        currency: "BDT",
+        content_ids: items.map((i) => i.sku || i.productId),
+        content_type: "product",
+        contents: items.map((i, idx) => ({
+          id: i.sku || i.productId,
+          item_name: i.title,
+          item_brand: i.brand || "Deshio",
+          item_variant: [i.size, i.color].filter(Boolean).join(" / ") || undefined,
+          quantity: i.quantity,
+          item_price: i.price,
+          index: idx,
+        })),
+        num_items: totalItems,
+      },
+    });
+  }, [items, totalItems, totalPrice]);
 
   const handleProceed = () => {
     router.push("/checkout");

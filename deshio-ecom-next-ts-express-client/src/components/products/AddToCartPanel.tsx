@@ -88,6 +88,13 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
     const categoryName =
       typeof product.category === "object" ? product.category?.name : undefined;
     const primarySku = activeVariant?.sku || product._id;
+    const variantLabel = [
+      selectedSize || activeVariant?.size,
+      selectedColor || activeVariant?.color,
+    ]
+      .filter(Boolean)
+      .join(" / ");
+    const discountAmount = Math.max(0, currentBasePrice - finalUnitPrice);
 
     trackEvent("ViewContent", {
       userData: user
@@ -109,14 +116,26 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
           {
             id: primarySku,
             item_name: product.title,
+            item_brand: product.brand || "Deshio",
+            item_category: categoryName,
+            item_variant: variantLabel || undefined,
             quantity: 1,
             item_price: finalUnitPrice,
+            discount: discountAmount > 0 ? discountAmount : undefined,
           },
         ],
         num_items: 1,
       },
     });
-  }, [product, activeVariant, finalUnitPrice, user]);
+  }, [
+    product,
+    activeVariant,
+    currentBasePrice,
+    finalUnitPrice,
+    selectedSize,
+    selectedColor,
+    user,
+  ]);
 
   const handleAddToCart = async () => {
     if (isOutOfStock || adding) return;
@@ -151,6 +170,48 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
       const isAdded = res.data.message?.toLowerCase().includes("added");
       setIsWishlisted(isAdded);
       updateUser({ ...user, wishlist: res.data.data.wishlist ?? [] });
+      if (isAdded) {
+        const categoryName =
+          typeof product.category === "object" ? product.category?.name : undefined;
+        const primarySku = activeVariant?.sku || product._id;
+        const variantLabel = [
+          selectedSize || activeVariant?.size,
+          selectedColor || activeVariant?.color,
+        ]
+          .filter(Boolean)
+          .join(" / ");
+        const discountAmount = Math.max(0, currentBasePrice - finalUnitPrice);
+
+        trackEvent("AddToWishlist", {
+          userData: {
+            email: user.email,
+            phone: user.phone,
+            name: user.name,
+            externalId: user._id,
+          },
+          customData: {
+            value: finalUnitPrice,
+            currency: "BDT",
+            content_ids: [primarySku],
+            content_type: "product",
+            content_name: product.title,
+            content_category: categoryName,
+            contents: [
+              {
+                id: primarySku,
+                item_name: product.title,
+                item_brand: product.brand || "Deshio",
+                item_category: categoryName,
+                item_variant: variantLabel || undefined,
+                quantity: 1,
+                item_price: finalUnitPrice,
+                discount: discountAmount > 0 ? discountAmount : undefined,
+              },
+            ],
+            num_items: 1,
+          },
+        });
+      }
       toast.success(isAdded ? "Saved to wishlist" : "Removed from wishlist");
     } catch {
       toast.error("Failed to update wishlist");

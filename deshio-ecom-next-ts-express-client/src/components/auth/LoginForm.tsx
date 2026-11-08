@@ -20,6 +20,7 @@ import {
 import { toast } from "@/context/ToastContext";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { trackEvent } from "@/lib/analytics";
 
 const loginSchema = z.object({
   identifier: z
@@ -63,6 +64,18 @@ function LoginFormContent({ brandName, brandLogo, tagline }: Props) {
         password: values.password,
       });
       login(data.data.accessToken, data.data.refreshToken, data.data.user);
+      trackEvent("Login", {
+        skipServerForward: true,
+        userData: {
+          email: data.data.user?.email,
+          phone: data.data.user?.phone,
+          name: data.data.user?.name,
+          externalId: data.data.user?._id,
+        },
+        customData: {
+          method: values.identifier.includes("@") ? "email" : "phone",
+        },
+      });
       toast.success(`Welcome back, ${data.data.user.name}!`);
       router.push(redirectPath);
     } catch (err: any) {
