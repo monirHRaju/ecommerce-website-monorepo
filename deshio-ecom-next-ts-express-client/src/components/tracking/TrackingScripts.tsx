@@ -118,27 +118,31 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
 
   const canLoadScripts = consentState === "granted";
 
+  const gtmContainerId =
+    activeConfig?.gtmContainerId?.trim() ||
+    process.env.NEXT_PUBLIC_GTM_ID?.trim() ||
+    "";
+
+  // When a GTM Container ID is configured, GTM manages browser tags (Meta Pixel, GA4, TikTok)
+  // via `window.dataLayer`. Loading direct browser scripts alongside GTM would fire every event twice.
+  const hasGtm = Boolean(gtmContainerId);
+
   const metaPixelId =
-    (activeConfig?.metaEnabled ?? true)
+    !hasGtm && (activeConfig?.metaEnabled ?? true)
       ? activeConfig?.metaPixelId?.trim() ||
         process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() ||
         ""
       : "";
 
   const gaMeasurementId =
-    activeConfig?.gaEnabled || process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+    !hasGtm && (activeConfig?.gaEnabled || process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID)
       ? activeConfig?.gaMeasurementId?.trim() ||
         process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() ||
         ""
       : "";
 
-  const gtmContainerId =
-    activeConfig?.gtmContainerId?.trim() ||
-    process.env.NEXT_PUBLIC_GTM_ID?.trim() ||
-    "";
-
   const tiktokPixelId =
-    activeConfig?.tiktokEnabled || process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID
+    !hasGtm && (activeConfig?.tiktokEnabled || process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID)
       ? activeConfig?.tiktokPixelId?.trim() ||
         process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID?.trim() ||
         ""
@@ -146,7 +150,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
 
   return (
     <>
-      {/* 1. Google Tag Manager (GTM Container + Data Layer Bridge) */}
+      {/* 1. Google Tag Manager (When configured, GTM manages all browser pixels via window.dataLayer) */}
       {canLoadScripts && gtmContainerId && (
         <>
           <Script id="gtm-init" strategy="afterInteractive">
@@ -172,39 +176,25 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
         </>
       )}
 
-      {/* 2. Meta (Facebook) Browser Pixel (autoPageView disabled so trackEvent("PageView") deduplicates with CAPI) */}
+      {/* 2. Direct Meta (Facebook) Browser Pixel (Loaded only when GTM is NOT used) */}
       {canLoadScripts && metaPixelId && (
-        <>
-          <Script id="meta-pixel-init" strategy="afterInteractive">
-            {`
-              !function(f,b,e,v,n,t,s)
-              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-              n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];
-              s.parentNode.insertBefore(t,s)}(window, document,'script',
-              'https://connect.facebook.net/en_US/fbevents.js');
-              fbq.disablePushState = true;
-              fbq('init', '${metaPixelId}');
-            `}
-          </Script>
-          <noscript>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              height="1"
-              width="1"
-              style={{ display: "none" }}
-              src={`https://www.facebook.com/tr?id=${encodeURIComponent(
-                metaPixelId
-              )}&ev=PageView&noscript=1`}
-              alt=""
-            />
-          </noscript>
-        </>
+        <Script id="meta-pixel-init" strategy="afterInteractive">
+          {`
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq.disablePushState = true;
+            fbq('init', '${metaPixelId}');
+          `}
+        </Script>
       )}
 
-      {/* 3. Google Analytics 4 (gtag.js) */}
+      {/* 3. Direct Google Analytics 4 (Loaded only when GTM is NOT used) */}
       {canLoadScripts && gaMeasurementId && (
         <>
           <Script
@@ -225,7 +215,7 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
         </>
       )}
 
-      {/* 4. TikTok Browser Pixel */}
+      {/* 4. Direct TikTok Browser Pixel (Loaded only when GTM is NOT used) */}
       {canLoadScripts && tiktokPixelId && (
         <Script id="tiktok-pixel-init" strategy="afterInteractive">
           {`

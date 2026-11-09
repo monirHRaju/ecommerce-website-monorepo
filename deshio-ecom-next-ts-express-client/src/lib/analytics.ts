@@ -9,8 +9,10 @@ declare global {
     _fbq?: any;
     gtag?: (...args: any[]) => void;
     dataLayer?: any[];
+    google_tag_manager?: Record<string, any>;
     ttq?: any;
     __DESHIO_TRACKING_CONFIG__?: PublicTrackingConfig | null;
+    __DESHIO_RECENT_EVENTS__?: Record<string, { eventId: string; timestamp: number }>;
   }
 }
 
@@ -156,7 +158,6 @@ export function resolveAndCacheUserData(input?: AnalyticsUserData): Record<strin
     // ignore storage errors
   }
 
-  // Also check if logged-in user is stored in localStorage
   try {
     const storedUserRaw = localStorage.getItem("user");
     if (storedUserRaw) {
@@ -246,11 +247,39 @@ export function hasTrackingConsent(config?: PublicTrackingConfig | null): boolea
 }
 
 /**
- * True once every enabled provider has defined its global (fbq / gtag / ttq),
- * so initial events are not lost to script-loading race conditions.
+ * Detects whether a Google Tag Manager (GTM-XXXX) container is configured or active on the page.
+ * When GTM is active, GTM manages browser tags (Meta Pixel, GA4, TikTok) via `window.dataLayer`,
+ * so we must NOT also fire direct `window.fbq` / `window.gtag` calls (which would double-count).
+ */
+export function isGtmActiveOnPage(config?: PublicTrackingConfig | null): boolean {
+  if (typeof window === "undefined") return false;
+  const activeConfig = config ?? window.__DESHIO_TRACKING_CONFIG__;
+  if (activeConfig?.gtmContainerId?.trim() || process.env.NEXT_PUBLIC_GTM_ID?.trim()) {
+    return true;
+  }
+  if (
+    window.google_tag_manager &&
+    Object.keys(window.google_tag_manager).some((k) => k.toUpperCase().startsWith("GTM-"))
+  ) {
+    return true;
+  }
+  if (
+    Array.isArray(window.dataLayer) &&
+    window.dataLayer.some(
+      (item) => item && typeof item === "object" && "gtm.start" in item
+    )
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * True once every enabled direct provider has defined its global (fbq / gtag / ttq).
  */
 export function isTrackingReady(config?: PublicTrackingConfig | null): boolean {
   if (typeof window === "undefined" || !config) return true;
+  if (isGtmActiveOnPage(config)) return true;
   if (
     config.metaEnabled &&
     config.metaPixelId?.trim() &&
@@ -273,8 +302,7 @@ export function isTrackingReady(config?: PublicTrackingConfig | null): boolean {
 
 /**
  * Waits up to `maxWaitMs` for a third-party pixel global (`fbq`, `gtag`, `ttq`) to finish
- * initializing before invoking `callback`, so events fired on initial mount (`ViewContent`,
- * `InitiateCheckout`, `PageView`) are never dropped.
+ * initializing before invoking `callback`.
  */
 function runWhenReady(
   checkFn: () => boolean,
@@ -309,12 +337,122 @@ function runWhenReady(
 }
 
 /**
- * Fires a standardized e-commerce event across:
- * 1) `window.dataLayer` (Unconditional GA4 Ecommerce + GTM + Meta/Enhanced Conversions Schema)
- * 2) Meta Browser Pixel (`fbq('track', event, data, { eventID })`)
- * 3) Direct Google Analytics 4 (`gtag('event', ...)`)
- * 4) TikTok Browser Pixel (`ttq.track`)
- * 5) Server-side Meta Conversions API (`POST /api/v1/tracking/event`) with identical `event_id`
+ * Window-level deduplication guard so React Strict Mode, Suspense remounts,
+ * or rapid state updates never fire the same event twice for a single user action.
+ */
+function checkDuplicateEvent(
+  eventName: TrackingEventName,
+  options: TrackEventOptions,
+  contentIds: string[]
+): string | null {
+  if (typeof window === "undefined") return null;
+  window.__DESHIO_RECENT_EVENTS__ = window.__DESHIO_RECENT_EVENTS__ || {};
+
+  const path = `${window.location.pathname}${window.location.search}`;
+  const customData = options.customData || {};
+  const idsKey = contentIds.slice(0, 10).join(",");
+
+  let signature = `${eventName}:${path}`;
+  let cooldownMs = 1200;
+
+  switch (eventName) {
+    case "PageView":
+      signature = `PageView:${path}`;
+      cooldownMs = 1500;
+      break;
+    case "ViewContent":
+      signature = `ViewContent:${path}:${idsKey}`;
+      cooldownMs = 2500;
+      break;
+    case "InitiateCheckout":
+      signature = `InitiateCheckout:${path}`;
+      cooldownMs = 3000;
+      break;
+    case "ViewCart":
+      signature = `ViewCart:${idsKey}:${customData.value ?? 0}`;
+      cooldownMs = 2500;
+      break;
+    case "ViewItemList":
+      signature = `ViewItemList:${customData.item_list_id || path}:${idsKey}`;
+      cooldownMs = 2500;
+      break;
+    case "Purchase":
+      signature = `Purchase:${
+        options.orderNumber || customData.order_id || options.orderId || options.eventId || ""
+      }`;
+      cooldownMs = 60000;
+      break;
+    default:
+      signature = `${eventName}:${idsKey}:${customData.value ?? ""}:${
+        customData.search_string ?? ""
+      }`;
+      cooldownMs = 1000;
+      break;
+  }
+
+  const now = Date.now();
+  const prev = window.__DESHIO_RECENT_EVENTS__[signature];
+  if (prev && now - prev.timestamp < cooldownMs) {
+    return prev.eventId;
+  }
+
+  return null;
+}
+
+function recordDispatchedEvent(
+  eventName: TrackingEventName,
+  options: TrackEventOptions,
+  contentIds: string[],
+  eventId: string
+): void {
+  if (typeof window === "undefined") return;
+  window.__DESHIO_RECENT_EVENTS__ = window.__DESHIO_RECENT_EVENTS__ || {};
+
+  const path = `${window.location.pathname}${window.location.search}`;
+  const customData = options.customData || {};
+  const idsKey = contentIds.slice(0, 10).join(",");
+
+  let signature = `${eventName}:${path}`;
+  switch (eventName) {
+    case "PageView":
+      signature = `PageView:${path}`;
+      break;
+    case "ViewContent":
+      signature = `ViewContent:${path}:${idsKey}`;
+      break;
+    case "InitiateCheckout":
+      signature = `InitiateCheckout:${path}`;
+      break;
+    case "ViewCart":
+      signature = `ViewCart:${idsKey}:${customData.value ?? 0}`;
+      break;
+    case "ViewItemList":
+      signature = `ViewItemList:${customData.item_list_id || path}:${idsKey}`;
+      break;
+    case "Purchase":
+      signature = `Purchase:${
+        options.orderNumber || customData.order_id || options.orderId || options.eventId || ""
+      }`;
+      break;
+    default:
+      signature = `${eventName}:${idsKey}:${customData.value ?? ""}:${
+        customData.search_string ?? ""
+      }`;
+      break;
+  }
+
+  window.__DESHIO_RECENT_EVENTS__[signature] = {
+    eventId,
+    timestamp: Date.now(),
+  };
+}
+
+/**
+ * Fires a standardized e-commerce event:
+ * - Always pushes once to `window.dataLayer` (for GTM tags: Meta Pixel, GA4, TikTok, etc.).
+ * - When GTM is NOT active on the page, dispatches directly to `window.fbq`, `window.gtag`, and `window.ttq`.
+ * - When GTM IS active, skips direct `fbq`/`gtag`/`ttq` calls so GTM tags never double-fire.
+ * - Forwards to Server-side Meta Conversions API (`POST /api/v1/tracking/event`) with identical `event_id`.
  */
 export function trackEvent(
   eventName: TrackingEventName,
@@ -336,6 +474,40 @@ export function trackEvent(
     currency: "BDT",
     ...(options.customData || {}),
   };
+
+  const gaItems = (customData.contents || []).map((c, idx) => {
+    const item: Record<string, any> = {
+      item_id: String(c.id),
+      item_name: String(c.item_name || customData.content_name || c.id),
+      item_brand: String(c.item_brand || "Deshio"),
+      price: Number((c.item_price ?? 0).toFixed(2)),
+      quantity: Number(c.quantity ?? 1),
+      currency: customData.currency || "BDT",
+    };
+    if (c.item_category || customData.content_category) {
+      item.item_category = String(c.item_category || customData.content_category);
+    }
+    if (c.item_variant) {
+      item.item_variant = String(c.item_variant);
+    }
+    if (c.discount !== undefined && c.discount > 0) {
+      item.discount = Number(c.discount.toFixed(2));
+    }
+    item.index = c.index !== undefined ? c.index : idx;
+    return item;
+  });
+
+  const resolvedContentIds =
+    customData.content_ids && customData.content_ids.length > 0
+      ? customData.content_ids
+      : gaItems.map((i) => i.item_id);
+
+  // Deduplication guard against React Strict Mode / remounts / double-clicks
+  const duplicateEventId = checkDuplicateEvent(eventName, options, resolvedContentIds);
+  if (duplicateEventId) {
+    return duplicateEventId;
+  }
+  recordDispatchedEvent(eventName, options, resolvedContentIds, eventId);
 
   const gaEventMap: Record<TrackingEventName, string> = {
     PageView: "page_view",
@@ -368,33 +540,6 @@ export function trackEvent(
     eventName === "AddShippingInfo" ||
     eventName === "AddPaymentInfo" ||
     eventName === "Purchase";
-
-  const gaItems = (customData.contents || []).map((c, idx) => {
-    const item: Record<string, any> = {
-      item_id: String(c.id),
-      item_name: String(c.item_name || customData.content_name || c.id),
-      item_brand: String(c.item_brand || "Deshio"),
-      price: Number((c.item_price ?? 0).toFixed(2)),
-      quantity: Number(c.quantity ?? 1),
-      currency: customData.currency || "BDT",
-    };
-    if (c.item_category || customData.content_category) {
-      item.item_category = String(c.item_category || customData.content_category);
-    }
-    if (c.item_variant) {
-      item.item_variant = String(c.item_variant);
-    }
-    if (c.discount !== undefined && c.discount > 0) {
-      item.discount = Number(c.discount.toFixed(2));
-    }
-    item.index = c.index !== undefined ? c.index : idx;
-    return item;
-  });
-
-  const resolvedContentIds =
-    customData.content_ids && customData.content_ids.length > 0
-      ? customData.content_ids
-      : gaItems.map((i) => i.item_id);
 
   const resolvedNumItems =
     customData.num_items !== undefined
@@ -432,14 +577,11 @@ export function trackEvent(
     page_title: document.title,
   };
 
-  // ── 1. UNCONDITIONAL Google Tag Manager / GA4 Standard Data Layer Push ───────
-  // Always pushes to `window.dataLayer` so GTM Preview, Tag Assistant, DataSlayer,
-  // and any GTM tags (GA4, Meta Pixel, Meta CAPI, TikTok) work out of the box.
+  // ── 1. Google Tag Manager / GA4 Standard Data Layer Push (Strictly Once) ────
   try {
     window.dataLayer = window.dataLayer || [];
 
     if (isGaEcommerceEvent) {
-      // Clear previous ecommerce object per Google's official GA4 GTM standard
       window.dataLayer.push({ ecommerce: null });
 
       const ecommerceObject: Record<string, any> = {
@@ -476,7 +618,6 @@ export function trackEvent(
         event: gaEventName,
         event_id: eventId,
         ecommerce: ecommerceObject,
-        // Top-level Meta & GTM variables for easy Data Layer Variable mapping
         content_ids: metaCustomData.content_ids,
         content_type: metaCustomData.content_type,
         content_name: metaCustomData.content_name,
@@ -522,7 +663,6 @@ export function trackEvent(
     // ignore dataLayer errors
   }
 
-  // ── 2. Meta Browser Pixel (`fbq`) with eventID deduplication & readiness queue ─
   const metaStandardEventMap: Partial<Record<TrackingEventName, string>> = {
     PageView: "PageView",
     ViewContent: "ViewContent",
@@ -536,24 +676,35 @@ export function trackEvent(
   };
   const metaEventName = metaStandardEventMap[eventName];
 
-  if (metaEventName && (config?.metaEnabled ?? true)) {
-    const hasPixelConfigured = Boolean(
-      config?.metaPixelId?.trim() || typeof window.fbq === "function"
+  // Check if GTM is active on the page. When GTM is active, GTM triggers Meta Pixel,
+  // GA4, and TikTok tags from the `window.dataLayer` push above — so skipping direct
+  // browser calls here prevents duplicate (2x) events on a single click.
+  const gtmManagesBrowserTags = isGtmActiveOnPage(config);
+
+  // ── 2. Direct Meta Browser Pixel (`fbq`) — only when GTM is NOT active ──────
+  const directMetaPixelId =
+    config?.metaPixelId?.trim() || process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
+  if (
+    !gtmManagesBrowserTags &&
+    metaEventName &&
+    (config?.metaEnabled ?? true) &&
+    directMetaPixelId
+  ) {
+    runWhenReady(
+      () => typeof window.fbq === "function" && !isGtmActiveOnPage(config),
+      () => {
+        window.fbq!("track", metaEventName, metaCustomData, { eventID: eventId });
+      }
     );
-    if (hasPixelConfigured) {
-      runWhenReady(
-        () => typeof window.fbq === "function",
-        () => {
-          window.fbq!("track", metaEventName, metaCustomData, { eventID: eventId });
-        }
-      );
-    }
   }
 
-  // ── 3. Direct Google Analytics 4 (`gtag.js`) with readiness queue ────────────
-  if (config?.gaEnabled && config?.gaMeasurementId?.trim()) {
+  // ── 3. Direct Google Analytics 4 (`gtag.js`) — only when GTM is NOT active ──
+  const directGaId =
+    config?.gaMeasurementId?.trim() ||
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
+  if (!gtmManagesBrowserTags && config?.gaEnabled && directGaId) {
     runWhenReady(
-      () => typeof window.gtag === "function",
+      () => typeof window.gtag === "function" && !isGtmActiveOnPage(config),
       () => {
         const params: Record<string, any> = { event_id: eventId };
         if (eventName === "PageView") {
@@ -584,8 +735,10 @@ export function trackEvent(
     );
   }
 
-  // ── 4. TikTok Browser Pixel (`ttq`) with readiness queue ─────────────────────
-  if (config?.tiktokEnabled && config?.tiktokPixelId?.trim()) {
+  // ── 4. Direct TikTok Browser Pixel (`ttq`) — only when GTM is NOT active ────
+  const directTiktokId =
+    config?.tiktokPixelId?.trim() || process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID?.trim();
+  if (!gtmManagesBrowserTags && config?.tiktokEnabled && directTiktokId) {
     const ttEventMap: Partial<Record<TrackingEventName, string>> = {
       ViewContent: "ViewContent",
       AddToWishlist: "AddToWishlist",
@@ -599,7 +752,9 @@ export function trackEvent(
     const ttEvent = ttEventMap[eventName];
 
     runWhenReady(
-      () => Boolean(window.ttq && typeof window.ttq.track === "function"),
+      () =>
+        Boolean(window.ttq && typeof window.ttq.track === "function") &&
+        !isGtmActiveOnPage(config),
       () => {
         if (eventName === "PageView" && typeof window.ttq.page === "function") {
           window.ttq.page();
@@ -623,7 +778,7 @@ export function trackEvent(
     );
   }
 
-  // ── 5. Server-side Conversions API forwarder ─────────────────────────────────
+  // ── 5. Server-side Conversions API forwarder (Deduplicated via shared event_id) ─
   const isCapiSupportedEvent = Boolean(metaStandardEventMap[eventName]);
   if (
     isCapiSupportedEvent &&
