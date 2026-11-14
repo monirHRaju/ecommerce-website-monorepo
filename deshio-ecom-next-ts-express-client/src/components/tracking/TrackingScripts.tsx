@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
-import { API_BASE } from "@/lib/api";
+import { API_BASE, BROWSER_API_BASE } from "@/lib/api";
 import { PublicTrackingConfig } from "@/lib/settings";
 import {
   CONSENT_STORAGE_KEY,
@@ -41,8 +41,9 @@ export default function TrackingScripts({ config }: TrackingScriptsProps) {
     getMetaBrowserIdentifiers();
 
     let cancelled = false;
-    fetch(`${API_BASE}/tracking/config`, { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
+    fetch(`${BROWSER_API_BASE}/tracking/config`, { cache: "no-store" })
+      .catch(() => fetch(`${API_BASE}/tracking/config`, { cache: "no-store" }))
+      .then((res) => (res && res.ok ? res.json() : null))
       .then((json) => {
         if (!cancelled && json?.data) {
           window.__DESHIO_TRACKING_CONFIG__ = json.data;

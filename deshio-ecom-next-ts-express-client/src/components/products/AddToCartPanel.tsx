@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Heart,
   ShoppingCart,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   RefreshCw,
   X,
+  Zap,
 } from "lucide-react";
 import { Product, Variant } from "@/types";
 import { discountedPrice, formatPrice } from "@/utils/formatPrice";
@@ -33,6 +35,7 @@ const DEFAULT_SIZE_GUIDE = [
 ];
 
 export default function AddToCartPanel({ product }: AddToCartPanelProps) {
+  const router = useRouter();
   const { addItem, openCart } = useCart();
   const { user, updateUser } = useAuth();
 
@@ -57,6 +60,7 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
   );
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
+  const [orderingNow, setOrderingNow] = useState(false);
   const [added, setAdded] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
 
@@ -138,7 +142,7 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
   ]);
 
   const handleAddToCart = async () => {
-    if (isOutOfStock || adding) return;
+    if (isOutOfStock || adding || orderingNow) return;
     setAdding(true);
     try {
       await addItem(product, qty, {
@@ -155,6 +159,24 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
       toast.error("Failed to add to cart");
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleOrderNow = async () => {
+    if (isOutOfStock || adding || orderingNow) return;
+    setOrderingNow(true);
+    try {
+      await addItem(product, qty, {
+        size: selectedSize || activeVariant?.size,
+        color: selectedColor || activeVariant?.color,
+        sku: activeVariant?.sku,
+        priceOverride: activeVariant?.priceOverride,
+        stock: currentStock,
+      });
+      router.push("/checkout");
+    } catch {
+      toast.error("Failed to proceed to checkout");
+      setOrderingNow(false);
     }
   };
 
@@ -333,75 +355,103 @@ export default function AddToCartPanel({ product }: AddToCartPanelProps) {
         )}
       </div>
 
-      {/* ── Quantity & Add to Bag ───────────────────────────────────── */}
-      <div className="flex items-center gap-3 pt-2">
-        {/* Quantity Stepper */}
-        <div className="inline-flex items-center border border-stone-300 rounded-lg bg-white overflow-hidden shrink-0">
+      {/* ── Quantity, Order Now & Add to Cart ───────────────────────── */}
+      <div className="space-y-3 pt-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+          {/* Quantity Stepper */}
+          <div className="inline-flex items-center border border-stone-300 rounded-lg bg-white overflow-hidden shrink-0">
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              disabled={qty <= 1 || isOutOfStock}
+              className="w-10 h-11 flex items-center justify-center text-stone-600 hover:bg-stone-100 disabled:opacity-40 transition-colors"
+            >
+              –
+            </button>
+            <span className="w-10 text-center text-sm font-semibold text-stone-900 select-none">
+              {qty}
+            </span>
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.min(currentStock, q + 1))}
+              disabled={qty >= currentStock || isOutOfStock}
+              className="w-10 h-11 flex items-center justify-center text-stone-600 hover:bg-stone-100 disabled:opacity-40 transition-colors"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Order Now & Add to Cart Buttons */}
+          <div className="grid grid-cols-2 gap-2.5 flex-1 min-w-[220px]">
+            {/* Order Now Button */}
+            <button
+              type="button"
+              onClick={handleOrderNow}
+              disabled={isOutOfStock || adding || orderingNow}
+              className={`h-11 px-3 rounded-lg font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all shadow-sm ${
+                isOutOfStock
+                  ? "bg-stone-200 text-stone-400 cursor-not-allowed"
+                  : "bg-emerald-800 text-white hover:bg-emerald-900 active:scale-[0.99]"
+              }`}
+            >
+              {orderingNow ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : isOutOfStock ? (
+                <span>Sold Out</span>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 shrink-0" />
+                  <span>Order Now</span>
+                </>
+              )}
+            </button>
+
+            {/* Add to Cart Button */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={isOutOfStock || adding || orderingNow}
+              className={`h-11 px-3 rounded-lg font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all shadow-sm ${
+                added
+                  ? "bg-emerald-700 text-white"
+                  : isOutOfStock
+                  ? "bg-stone-200 text-stone-400 cursor-not-allowed"
+                  : "bg-stone-900 text-white hover:bg-stone-800 active:scale-[0.99]"
+              }`}
+            >
+              {adding ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : added ? (
+                <>
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>Added!</span>
+                </>
+              ) : isOutOfStock ? (
+                <span>Sold Out</span>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 shrink-0" />
+                  <span>Add to Cart</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Wishlist Button */}
           <button
             type="button"
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
-            disabled={qty <= 1 || isOutOfStock}
-            className="w-10 h-11 flex items-center justify-center text-stone-600 hover:bg-stone-100 disabled:opacity-40 transition-colors"
+            onClick={handleWishlist}
+            disabled={wishlistLoading}
+            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            className={`w-11 h-11 rounded-lg border flex items-center justify-center transition-colors shrink-0 ${
+              isWishlisted
+                ? "bg-rose-50 border-rose-300 text-rose-600"
+                : "bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:text-rose-600"
+            }`}
           >
-            –
-          </button>
-          <span className="w-10 text-center text-sm font-semibold text-stone-900 select-none">
-            {qty}
-          </span>
-          <button
-            type="button"
-            onClick={() => setQty((q) => Math.min(currentStock, q + 1))}
-            disabled={qty >= currentStock || isOutOfStock}
-            className="w-10 h-11 flex items-center justify-center text-stone-600 hover:bg-stone-100 disabled:opacity-40 transition-colors"
-          >
-            +
+            <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
           </button>
         </div>
-
-        {/* Add to Cart Button */}
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={isOutOfStock || adding}
-          className={`flex-1 h-11 rounded-lg font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all shadow-sm ${
-            added
-              ? "bg-emerald-700 text-white"
-              : isOutOfStock
-              ? "bg-stone-200 text-stone-400 cursor-not-allowed"
-              : "bg-stone-900 text-white hover:bg-stone-800"
-          }`}
-        >
-          {adding ? (
-            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : added ? (
-            <>
-              <Check className="w-4 h-4" />
-              <span>Added to Cart!</span>
-            </>
-          ) : isOutOfStock ? (
-            <span>Sold Out</span>
-          ) : (
-            <>
-              <ShoppingCart className="w-4 h-4" />
-              <span>Add to Cart</span>
-            </>
-          )}
-        </button>
-
-        {/* Wishlist Button */}
-        <button
-          type="button"
-          onClick={handleWishlist}
-          disabled={wishlistLoading}
-          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          className={`w-11 h-11 rounded-lg border flex items-center justify-center transition-colors shrink-0 ${
-            isWishlisted
-              ? "bg-rose-50 border-rose-300 text-rose-600"
-              : "bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:text-rose-600"
-          }`}
-        >
-          <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
-        </button>
       </div>
 
       {/* ── Assurance Strip ─────────────────────────────────────────── */}

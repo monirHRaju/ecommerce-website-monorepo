@@ -1,6 +1,6 @@
 "use client";
 
-import { API_BASE } from "@/lib/api";
+import { API_BASE, BROWSER_API_BASE } from "@/lib/api";
 import { PublicTrackingConfig, TrackingEventName } from "@/lib/settings";
 
 declare global {
@@ -786,7 +786,7 @@ export function trackEvent(
     (config?.metaCapiEnabled ?? true)
   ) {
     const { fbp, fbc } = getMetaBrowserIdentifiers();
-    fetch(`${API_BASE}/tracking/event`, {
+    fetch(`${BROWSER_API_BASE}/tracking/event`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       keepalive: true,
