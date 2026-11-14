@@ -83,7 +83,12 @@ function readGuestCart(): CartItem[] {
 }
 
 function writeGuestCart(items: CartItem[]) {
-  localStorage.setItem(GUEST_KEY, JSON.stringify(items));
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(GUEST_KEY, JSON.stringify(items));
+  } catch {
+    // ignore storage errors in restricted webviews
+  }
 }
 
 function normalizeAuthItems(raw: any[]): CartItem[] {
@@ -469,7 +474,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clearCart = useCallback(() => {
     setItems([]);
     if (typeof window !== "undefined") {
-      localStorage.removeItem(GUEST_KEY);
+      try {
+        localStorage.removeItem(GUEST_KEY);
+      } catch {
+        // ignore storage errors
+      }
     }
   }, []);
 

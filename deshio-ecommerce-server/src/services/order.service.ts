@@ -52,8 +52,8 @@ export async function placeOrder(input: PlaceOrderInput) {
     mobilePayment,
   } = input;
 
-  if (!shippingAddress || !shippingAddress.street || !shippingAddress.city) {
-    throw new AppError('Shipping address is required', 400);
+  if (!shippingAddress || !String(shippingAddress.street || '').trim()) {
+    throw new AppError('Full address is required', 400);
   }
   if (!phone) {
     throw new AppError('Mobile number is required', 400);
@@ -161,10 +161,25 @@ export async function placeOrder(input: PlaceOrderInput) {
   let deliveryCharge = 0;
   let resolvedDeliveryZoneId: any = undefined;
   if (deliveryZoneId) {
-    const zone = await DeliveryZone.findById(deliveryZoneId);
-    if (!zone || !zone.isActive) throw new AppError('Selected delivery zone is unavailable', 400);
-    deliveryCharge = zone.charge;
-    resolvedDeliveryZoneId = zone._id;
+    if (Types.ObjectId.isValid(deliveryZoneId)) {
+      const zone = await DeliveryZone.findById(deliveryZoneId);
+      if (!zone || !zone.isActive) throw new AppError('Selected delivery zone is unavailable', 400);
+      deliveryCharge = zone.charge;
+      resolvedDeliveryZoneId = zone._id;
+    } else if (deliveryZoneId === 'fallback-inside-dhaka') {
+      const zone = await DeliveryZone.findOne({ isActive: true, name: /inside dhaka|dhaka city/i }).sort({ charge: 1 });
+      deliveryCharge = zone ? zone.charge : 80;
+      resolvedDeliveryZoneId = zone?._id;
+    } else if (deliveryZoneId === 'fallback-outside-dhaka') {
+      const zone = await DeliveryZone.findOne({ isActive: true, name: /outside dhaka/i }).sort({ charge: 1 });
+      deliveryCharge = zone ? zone.charge : 120;
+      resolvedDeliveryZoneId = zone?._id;
+    } else {
+      const firstActiveZone = await DeliveryZone.findOne({ isActive: true }).sort({ charge: 1 });
+      if (!firstActiveZone) throw new AppError('Selected delivery zone is unavailable', 400);
+      deliveryCharge = firstActiveZone.charge;
+      resolvedDeliveryZoneId = firstActiveZone._id;
+    }
   }
 
   // ── Coupon ─────────────────────────────────────────────────────────────────

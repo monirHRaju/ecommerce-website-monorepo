@@ -53,9 +53,7 @@ const schema = z
         message: "Enter a valid 11-digit BD mobile number (e.g. 017XXXXXXXX)",
       }),
     name: z.string().min(2, "Full name is required"),
-    street: z.string().min(5, "Address is required"),
-    city: z.string().min(2, "District is required"),
-    thana: z.string().min(2, "Thana is required"),
+    street: z.string().trim().min(5, "Full address is required"),
     deliveryZoneId: z.string().min(1, "Please select a delivery option"),
     paymentMethod: z.enum(["cash_on_delivery", "mobile_banking"] as const, {
       error: "Select a payment method",
@@ -301,23 +299,69 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
+  const FALLBACK_DELIVERY_ZONES: DeliveryZone[] = [
+    {
+      _id: "fallback-inside-dhaka",
+      name: "Inside Dhaka",
+      charge: 80,
+      estimatedDays: "1-2 business days",
+      isActive: true,
+    },
+    {
+      _id: "fallback-outside-dhaka",
+      name: "Outside Dhaka",
+      charge: 120,
+      estimatedDays: "2-4 business days",
+      isActive: true,
+    },
+  ];
+
   const { data: mobileMethods = [] } = useQuery<PaymentMethod[]>({
     queryKey: ["payment-methods"],
     queryFn: async () => {
-      const res = await api.get("/payment-methods");
-      return res.data.data ?? [];
+      try {
+        const res = await api.get("/payment-methods");
+        return res.data?.data ?? [];
+      } catch {
+        const res = await fetch("/api/v1/payment-methods", { cache: "no-store" });
+        if (!res.ok) return [];
+        const json = await res.json();
+        return json?.data ?? [];
+      }
     },
     staleTime: 5 * 60_000,
+    retry: 2,
   });
 
-  const { data: deliveryZones = [] } = useQuery<DeliveryZone[]>({
-    queryKey: ["delivery-zones"],
-    queryFn: async () => {
-      const res = await api.get("/delivery-zones");
-      return res.data.data ?? [];
-    },
-    staleTime: 5 * 60_000,
-  });
+  const { data: fetchedDeliveryZones, isLoading: loadingDeliveryZones } =
+    useQuery<DeliveryZone[]>({
+      queryKey: ["delivery-zones"],
+      queryFn: async () => {
+        try {
+          const res = await api.get("/delivery-zones");
+          const list = res.data?.data;
+          if (Array.isArray(list) && list.length > 0) return list;
+        } catch {
+          // fallback to native fetch via same-origin proxy
+        }
+        const res = await fetch("/api/v1/delivery-zones", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load delivery zones");
+        const json = await res.json();
+        const list = json?.data;
+        return Array.isArray(list) && list.length > 0
+          ? list
+          : FALLBACK_DELIVERY_ZONES;
+      },
+      staleTime: 5 * 60_000,
+      retry: 2,
+    });
+
+  const deliveryZones =
+    fetchedDeliveryZones && fetchedDeliveryZones.length > 0
+      ? fetchedDeliveryZones
+      : loadingDeliveryZones
+      ? []
+      : FALLBACK_DELIVERY_ZONES;
 
   const {
     register,
@@ -331,8 +375,6 @@ export default function CheckoutPage() {
       phone: user?.phone ?? "",
       name: user?.name ?? "",
       street: user?.address?.street ?? "",
-      city: user?.address?.city ?? "",
-      thana: user?.address?.thana ?? "",
       paymentMethod: "cash_on_delivery",
       deliveryZoneId: "",
       orderNote: "",
@@ -347,20 +389,17 @@ export default function CheckoutPage() {
     if (!user) return;
     if (user.phone && !watch("phone")) setValue("phone", user.phone);
     if (user.name && !watch("name")) setValue("name", user.name);
-    if (user.address?.street && !watch("street"))
-      setValue("street", user.address.street);
-    if (user.address?.city && !watch("city"))
-      setValue("city", user.address.city);
-    if (user.address?.thana && !watch("thana"))
-      setValue("thana", user.address.thana);
-  }, [user, setValue, watch]);
-
-  // Auto-select first delivery zone when zones are fetched
-  useEffect(() => {
-    if (deliveryZones.length > 0 && !watch("deliveryZoneId")) {
-      setValue("deliveryZoneId", deliveryZones[0]._id);
+    if (user.address?.street && !watch("street")) {
+      const fullSavedAddress = [
+        user.address.street,
+        user.address.thana,
+        user.address.city,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      setValue("street", fullSavedAddress);
     }
-  }, [deliveryZones, setValue, watch]);
+  }, [user, setValue, watch]);
 
   const selectedPaymentMethod = watch("paymentMethod");
   const selectedMobileMethodId = watch("selectedPaymentMethodId");
@@ -369,6 +408,16 @@ export default function CheckoutPage() {
   );
 
   const selectedZoneId = watch("deliveryZoneId");
+
+  // Auto-select first delivery zone when zones are fetched
+  useEffect(() => {
+    if (deliveryZones.length > 0 && !selectedZoneId) {
+      setValue("deliveryZoneId", deliveryZones[0]._id, {
+        shouldValidate: true,
+      });
+    }
+  }, [deliveryZones, selectedZoneId, setValue]);
+
   const selectedZone = deliveryZones.find((z) => z._id === selectedZoneId);
   const deliveryCharge = selectedZone?.charge ?? 0;
   const couponDiscount = appliedCoupon?.discount ?? 0;
@@ -458,9 +507,7 @@ export default function CheckoutPage() {
     setPlacing(true);
     try {
       const shippingAddress = {
-        street: data.street,
-        thana: data.thana,
-        city: data.city,
+        street: data.street.trim(),
         country: "Bangladesh",
       };
 
@@ -496,9 +543,7 @@ export default function CheckoutPage() {
         name: data.name,
         phone: data.phone,
         email: user?.email,
-        city: data.city,
-        thana: data.thana,
-        street: data.street,
+        street: data.street.trim(),
         country: "Bangladesh",
         externalId: user?._id,
       };
@@ -510,7 +555,7 @@ export default function CheckoutPage() {
         customData: {
           value: grandTotal,
           shipping: deliveryCharge,
-          shipping_tier: selectedZone?.name || data.city,
+          shipping_tier: selectedZone?.name,
           coupon: appliedCoupon?.code,
           currency: "BDT",
           content_ids: contentIds,
@@ -763,11 +808,11 @@ export default function CheckoutPage() {
 
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Address <span className="text-rose-600">*</span>
+                      Full Address <span className="text-rose-600">*</span>
                     </label>
                     <input
                       {...register("street")}
-                      placeholder="House 12, Road 5, Block C"
+                      placeholder="House 12, Road 5, Block C, Dhanmondi, Dhaka"
                       className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
                         errors.street ? "border-rose-400" : "border-stone-300"
                       }`}
@@ -777,44 +822,6 @@ export default function CheckoutPage() {
                         {errors.street.message}
                       </p>
                     )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        District <span className="text-rose-600">*</span>
-                      </label>
-                      <input
-                        {...register("city")}
-                        placeholder="e.g. Dhaka"
-                        className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
-                          errors.city ? "border-rose-400" : "border-stone-300"
-                        }`}
-                      />
-                      {errors.city && (
-                        <p className="text-rose-600 text-xs mt-1">
-                          {errors.city.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        Thana <span className="text-rose-600">*</span>
-                      </label>
-                      <input
-                        {...register("thana")}
-                        placeholder="e.g. Dhanmondi"
-                        className={`w-full rounded-lg border px-3.5 py-2.5 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/40 ${
-                          errors.thana ? "border-rose-400" : "border-stone-300"
-                        }`}
-                      />
-                      {errors.thana && (
-                        <p className="text-rose-600 text-xs mt-1">
-                          {errors.thana.message}
-                        </p>
-                      )}
-                    </div>
                   </div>
                 </div>
               </section>

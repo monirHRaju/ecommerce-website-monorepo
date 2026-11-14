@@ -230,8 +230,8 @@ const guestCheckout = asyncHandler(async (req: Request, res: Response) => {
   if (!normalizedPhone) {
     throw new AppError('Please enter a valid 11-digit Bangladesh mobile number (e.g. 017XXXXXXXX)', 400);
   }
-  if (!shippingAddress || !shippingAddress.street || !shippingAddress.city) {
-    throw new AppError('Shipping address is required', 400);
+  if (!shippingAddress || !String(shippingAddress.street || '').trim()) {
+    throw new AppError('Full address is required', 400);
   }
   if (!Array.isArray(items) || items.length === 0) {
     throw new AppError('Your shopping bag is empty', 400);

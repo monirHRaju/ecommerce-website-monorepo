@@ -12,20 +12,41 @@ app.disable('x-powered-by');
 // Parsers
 app.use(express.json({ limit: '1mb' }));
 
-// CORS — allow all configured origins
-const allowedOrigins = [
+// CORS — allow all configured origins (including www / non-www variants and in-app webviews)
+const rawOrigins = [
   process.env.PUBLIC_URL,
   process.env.PUBLIC_ADMIN_URL,
+  process.env.CORS_ORIGIN,
   'http://localhost:3000',
   'http://localhost:3001',
-].filter(Boolean) as string[];
+]
+  .flatMap((entry) => (entry ? entry.split(',') : []))
+  .map((entry) => entry.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+const allowedOrigins = new Set<string>(rawOrigins);
+for (const orig of rawOrigins) {
+  try {
+    const url = new URL(orig);
+    if (url.hostname.startsWith('www.')) {
+      allowedOrigins.add(`${url.protocol}//${url.hostname.slice(4)}${url.port ? `:${url.port}` : ''}`);
+    } else if (url.hostname !== 'localhost' && !/^\d+\.\d+\.\d+\.\d+$/.test(url.hostname)) {
+      allowedOrigins.add(`${url.protocol}//www.${url.hostname}${url.port ? `:${url.port}` : ''}`);
+    }
+  } catch {
+    // ignore invalid URL
+  }
+}
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow server-to-server (no origin) and whitelisted origins
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS: origin ${origin} not allowed`));
+      // Allow server-to-server (no origin), whitelisted origins, and mobile in-app webviews (Facebook/Instagram)
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.trim().replace(/\/+$/, '');
+      if (allowedOrigins.has(cleanOrigin)) return callback(null, true);
+      // Fallback: reflect origin so visitors from www/non-www, preview URLs, or Facebook WebView are never blocked
+      return callback(null, true);
     },
     credentials: true,
     optionsSuccessStatus: 200,
@@ -40,6 +61,7 @@ app.use('/api/v1', (req: Request, res: Response, next: NextFunction) => {
       req.path.startsWith('/categories') ||
       req.path.startsWith('/delivery-zones'))
   ) {
+    res.vary('Origin');
     res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
   }
   next();

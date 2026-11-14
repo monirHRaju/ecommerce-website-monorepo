@@ -7,7 +7,20 @@ import sendResponse from '../utils/sendResponse';
 // GET /api/v1/delivery-zones  (public — active only; admin can pass ?all=true)
 const getDeliveryZones = asyncHandler(async (req: Request, res: Response) => {
   const filter = req.query.all === 'true' ? {} : { isActive: true };
-  const zones = await DeliveryZone.find(filter).sort({ charge: 1 });
+  let zones = await DeliveryZone.find(filter).sort({ charge: 1 });
+
+  // Auto-seed default zones if database has no delivery zones at all
+  if (zones.length === 0 && req.query.all !== 'true') {
+    const totalCount = await DeliveryZone.countDocuments();
+    if (totalCount === 0) {
+      await DeliveryZone.create([
+        { name: 'Inside Dhaka', charge: 80, estimatedDays: '1-2 business days', isActive: true },
+        { name: 'Outside Dhaka', charge: 120, estimatedDays: '2-4 business days', isActive: true },
+      ]);
+      zones = await DeliveryZone.find(filter).sort({ charge: 1 });
+    }
+  }
+
   sendResponse(res, {
     statusCode: 200,
     success: true,
