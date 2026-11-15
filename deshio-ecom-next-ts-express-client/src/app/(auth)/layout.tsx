@@ -24,18 +24,18 @@ export default async function AuthLayout({
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 font-serif text-2xl tracking-tight text-stone-900 hover:opacity-80 transition-opacity"
+            className="inline-flex items-center gap-2 font-serif text-2xl sm:text-3xl tracking-tight text-stone-900 hover:opacity-80 transition-opacity"
           >
             {brandLogo ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={brandLogo}
                 alt={brandName}
-                className="h-8 w-auto max-w-[140px] object-contain"
+                className="h-12 sm:h-14 lg:h-16 w-auto max-w-[200px] sm:max-w-[240px] object-contain"
               />
             ) : (
               <>
-                <ShoppingBag className="w-5 h-5 text-amber-800" />
+                <ShoppingBag className="w-6 h-6 text-amber-800" />
                 <span>{brandName}</span>
               </>
             )}

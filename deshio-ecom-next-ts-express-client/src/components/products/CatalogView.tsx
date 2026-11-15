@@ -444,75 +444,75 @@ export default async function CatalogView({
 
   return (
     <div className="min-h-screen bg-stone-50/40">
-      {/* ── Page Header ─────────────────────────────────────────────── */}
+      {/* ── Compact Breadcrumb Bar (Desktop Search) ──────────────────── */}
       <div className="bg-white border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-4">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs text-stone-400 mb-3">
+          <nav className="flex items-center gap-2 text-xs text-stone-400 overflow-x-auto whitespace-nowrap">
             <Link href="/" className="hover:text-stone-700 transition-colors">
               Home
             </Link>
             <span>/</span>
-            <Link href="/products" className="hover:text-stone-700 transition-colors">
+            <Link
+              href="/products"
+              className={!currentCategory && !gender ? "text-stone-800 font-medium" : "hover:text-stone-700 transition-colors"}
+            >
               Catalog
             </Link>
             {currentCategory && (
               <>
                 <span>/</span>
-                <span className="text-stone-700">{currentCategory.name}</span>
+                <span className="text-stone-800 font-medium">{currentCategory.name}</span>
               </>
             )}
             {gender && (
               <>
                 <span>/</span>
-                <span className="text-stone-700 capitalize">{gender}</span>
+                <span className="text-stone-800 font-medium capitalize">{gender}</span>
               </>
             )}
           </nav>
 
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-            <div>
-              <h1 className="font-serif text-3xl sm:text-4xl text-stone-900 tracking-tight">
-                {displayTitle}
-              </h1>
-              <p className="text-stone-500 text-sm sm:text-base mt-2 max-w-2xl font-light">
-                {displaySubtitle}
-              </p>
-            </div>
-
-            {/* Native Search Form */}
-            <form method="GET" action={basePath} className="relative w-full lg:max-w-xs">
-              {category && <input type="hidden" name="category" value={category} />}
-              {gender && <input type="hidden" name="gender" value={gender} />}
-              {sort && sort !== "-createdAt" && (
-                <input type="hidden" name="sort" value={sort} />
-              )}
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-              <input
-                type="text"
-                name="search"
-                defaultValue={search ?? ""}
-                placeholder="Search collection, fabric, style…"
-                className="w-full pl-9 pr-8 py-2 rounded-lg border border-stone-300 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/50"
-              />
-              {search && (
-                <Link
-                  href={getFilterUrl({ search: null })}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-800"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </Link>
-              )}
-            </form>
-          </div>
+          {/* Search Form - Hidden on mobile and tablet, shown on desktop only */}
+          <form
+            method="GET"
+            action={basePath}
+            className="hidden lg:block relative w-full max-w-xs shrink-0"
+          >
+            {category && <input type="hidden" name="category" value={category} />}
+            {gender && <input type="hidden" name="gender" value={gender} />}
+            {sort && sort !== "-createdAt" && (
+              <input type="hidden" name="sort" value={sort} />
+            )}
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+            <input
+              type="text"
+              name="search"
+              defaultValue={search ?? ""}
+              placeholder="Search collection, fabric, style…"
+              className="w-full pl-9 pr-8 py-1.5 rounded-lg border border-stone-300 text-xs sm:text-sm focus:outline-stone-900 bg-stone-50/50"
+            />
+            {search && (
+              <Link
+                href={getFilterUrl({ search: null })}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-800"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Link>
+            )}
+          </form>
         </div>
       </div>
 
       {/* ── Filter Bar & Sort ───────────────────────────────────────── */}
-      <div className="sticky top-16 z-20 bg-white/95 backdrop-blur-md border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 flex-wrap">
-          {/* Mobile Filter Button */}
-          <MobileFilterToggle activeCount={activeCount}>
+      <div className="sticky top-20 sm:top-24 lg:top-28 z-20 bg-white/95 backdrop-blur-md border-b border-stone-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 flex-wrap">
+          {/* Mobile & Tablet Filter Button */}
+          <MobileFilterToggle
+            activeCount={activeCount}
+            totalCount={meta.total}
+            basePath={basePath}
+          >
             {renderFilterPanel()}
           </MobileFilterToggle>
 

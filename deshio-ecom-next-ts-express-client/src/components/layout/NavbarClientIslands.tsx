@@ -205,7 +205,7 @@ export function SearchIsland() {
         className="p-2 text-stone-700 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition-colors"
         aria-label="Search collection"
       >
-        <Search className="w-5 h-5" />
+        <Search className="w-6 h-6 text-stone-900" />
       </button>
 
       {mounted && searchModalContent ? createPortal(searchModalContent, document.body) : null}
@@ -224,9 +224,9 @@ export function CartTriggerIsland() {
       className="relative p-2 text-stone-700 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition-colors"
       aria-label="Shopping bag"
     >
-      <ShoppingCart className="w-5 h-5" />
+      <ShoppingCart className="w-6 h-6 text-stone-900" />
       {totalItems > 0 && (
-        <span className="absolute top-1 right-1 flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-stone-900 text-[10px] font-bold text-white leading-none">
+        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-amber-600 text-[11px] font-bold text-white shadow-xs leading-none">
           {totalItems}
         </span>
       )}
@@ -331,8 +331,12 @@ export function UserAccountIsland() {
 
 export function MobileDrawerIsland({
   categories,
+  brandName = "Deshio",
+  brandLogo,
 }: {
   categories: Array<{ _id: string; name: string; slug: string }>;
+  brandName?: string;
+  brandLogo?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -378,9 +382,24 @@ export function MobileDrawerIsland({
       <div className="relative w-80 max-w-[85vw] bg-white h-screen sm:h-full max-h-[100dvh] shadow-2xl z-10 flex flex-col p-6 overflow-y-auto animate-in slide-in-from-left duration-200">
         {/* Header */}
         <div className="flex items-center justify-between pb-5 border-b border-stone-100">
-          <span className="font-serif text-xl font-bold tracking-tight text-stone-900">
-            Menu
-          </span>
+          <Link
+            href="/"
+            onClick={() => setOpen(false)}
+            className="inline-flex items-center"
+          >
+            {brandLogo ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={brandLogo}
+                alt={brandName}
+                className="h-11 w-auto max-w-[190px] object-contain"
+              />
+            ) : (
+              <span className="font-serif text-2xl font-bold tracking-tight text-stone-900">
+                {brandName}
+              </span>
+            )}
+          </Link>
           <button
             onClick={() => setOpen(false)}
             className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
@@ -532,10 +551,10 @@ export function MobileDrawerIsland({
     <div className="lg:hidden">
       <button
         onClick={() => setOpen(true)}
-        className="p-2 text-stone-800 hover:bg-stone-100 rounded-lg transition-colors"
+        className="p-2 text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
         aria-label="Open menu"
       >
-        <Menu className="w-5 h-5" />
+        <Menu className="w-6 h-6" />
       </button>
 
       {mounted && drawerContent ? createPortal(drawerContent, document.body) : null}

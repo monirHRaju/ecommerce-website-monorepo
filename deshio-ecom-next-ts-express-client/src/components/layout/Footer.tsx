@@ -77,7 +77,7 @@ export default async function Footer() {
                 <img
                   src={settings.logoUrl}
                   alt={brandName}
-                  className="h-9 w-auto max-w-[160px] object-contain mb-2"
+                  className="h-14 sm:h-16 lg:h-20 w-auto max-w-[220px] sm:max-w-[260px] object-contain mb-3"
                 />
               ) : null}
               <span className="font-serif text-2xl font-bold tracking-tight text-stone-900">

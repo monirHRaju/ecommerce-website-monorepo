@@ -57,26 +57,32 @@ export default async function Navbar() {
 
       {/* Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 lg:h-18 gap-3 lg:gap-4">
+        <div className="flex items-center justify-between min-h-20 sm:min-h-24 lg:min-h-28 py-2 sm:py-3 gap-3 lg:gap-6">
           {/* Mobile Menu Button */}
-          <MobileDrawerIsland categories={categories} />
+          <div className="flex items-center lg:hidden">
+            <MobileDrawerIsland
+              categories={categories}
+              brandName={brandName}
+              brandLogo={brandLogo}
+            />
+          </div>
 
-          {/* Brand Logo */}
+          {/* Brand Logo - Centered on Mobile, Left-aligned on Desktop */}
           <div className="flex-1 lg:flex-initial flex items-center justify-center lg:justify-start">
-            <Link href="/" className="group flex flex-col items-center lg:items-start">
+            <Link href="/" className="group flex flex-col items-center lg:items-start py-1">
               {brandLogo ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={brandLogo}
                   alt={brandName}
-                  className="h-9 w-auto max-w-[160px] object-contain"
+                  className="h-16 sm:h-20 lg:h-24 w-auto max-w-[240px] sm:max-w-[300px] lg:max-w-[360px] object-contain transition-transform duration-300 group-hover:scale-[1.02]"
                 />
               ) : (
                 <>
-                  <span className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-stone-900 group-hover:text-stone-700 transition-colors">
+                  <span className="font-serif text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-stone-900 group-hover:text-stone-700 transition-colors leading-none">
                     {brandName}
                   </span>
-                  <span className="text-[9px] uppercase tracking-widest font-semibold text-stone-500 -mt-1 hidden sm:block">
+                  <span className="text-[11px] sm:text-xs uppercase tracking-[0.25em] font-bold text-stone-500 mt-1 hidden sm:block">
                     {brandTagline}
                   </span>
                 </>
@@ -85,12 +91,12 @@ export default async function Navbar() {
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-7">
+          <nav className="hidden lg:flex items-center gap-8">
             {siteConfig.navigation.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
-                className={`text-xs font-semibold uppercase tracking-widest transition-colors py-2 ${
+                className={`text-sm font-semibold uppercase tracking-widest transition-colors py-2 ${
                   item.highlight
                     ? "text-amber-800 hover:text-amber-950 font-bold"
                     : "text-stone-700 hover:text-stone-900"
@@ -103,10 +109,8 @@ export default async function Navbar() {
 
           {/* Right Action Islands */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* On mobile, search & account live in the bottom tab bar */}
-            <div className="hidden lg:block">
-              <SearchIsland />
-            </div>
+            {/* Search icon (shown on both mobile and desktop like the reference design) */}
+            <SearchIsland />
             <div className="hidden lg:block">
               <UserAccountIsland />
             </div>
